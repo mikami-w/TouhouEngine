@@ -48,7 +48,13 @@ void Application::run()
 {
   double accumulatedTime = 0.0; // 累积的未处理时间
   // 主循环
-  while (m_window->processMessages()) {
+  while (m_isRunning) {
+    if (!m_window->processMessages()) {
+      m_isRunning = false;
+      break;
+    }
+    // TODO: 添加其他退出逻辑
+
     // 处理窗口消息, 如果窗口被关闭则停止循环
     // 获取当前经过的时间, 并累积到 accumulatedTime 中
     m_timer->tick();

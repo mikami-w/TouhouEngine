@@ -64,7 +64,8 @@ void Application::run()
     // 只有累积的时间经过了一帧的时间 (1/60s), 才执行一次更新循环
     // 若由于卡顿等原因 accumulatedTime 积累了 2 帧或更多, 则连续执行多次更新循环而不渲染, 以追赶上当前时间
     bool isUpdated = false;
-    while (accumulatedTime >= SECONDS_PER_FRAME) {
+    int updateCount = 0;  // 统计连续更新的次数, 用于限制最大连续更新次数, 模拟处理落机制
+    while (accumulatedTime >= SECONDS_PER_FRAME && updateCount++ < 2) { // 最多连续更新 2 次, 即通过处理落机制最多降低到 30fps
       update();
       accumulatedTime -= SECONDS_PER_FRAME; // 减去一帧的时间
       isUpdated = true;

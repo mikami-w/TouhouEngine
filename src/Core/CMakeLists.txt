@@ -3,6 +3,7 @@ set(CORE_SOURCES
         Window.hpp
         StringUtils.cpp
         StringUtils.hpp
+        Logger.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

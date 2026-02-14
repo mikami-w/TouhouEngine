@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include <utility>
+#include <stdexcept>
 
 namespace Core {
 Window::Window(Config config)

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "Core/Window.hpp"
+#include "Graphics/DX11Device.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -17,6 +18,7 @@ int main(int argc, char* argv[])
     };
 
     Core::Window wnd{ config };
+    Graphics::DX11Device dx11d{wnd.getHandle(), config.width, config.height};
 
     for (;;) {
       // 处理窗口消息

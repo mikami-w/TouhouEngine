@@ -8,7 +8,7 @@ target_include_directories(ProjectPCH INTERFACE
 )
 
 add_subdirectory(Core)
-#add_subdirectory(Graphics)
+add_subdirectory(Graphics)
 #add_subdirectory(Script)
 #add_subdirectory(Game)
 
@@ -29,7 +29,7 @@ endif()
 target_link_libraries(TouhouApp PRIVATE
         ProjectPCH
         Core
-#        Graphics
+        Graphics
 #        Script
 #        Game
 )

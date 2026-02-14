@@ -6,6 +6,8 @@ set(CORE_SOURCES
         Logger.hpp
         Timer.cpp
         Timer.hpp
+        Application.cpp
+        Application.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

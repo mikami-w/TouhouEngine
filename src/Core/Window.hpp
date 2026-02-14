@@ -20,7 +20,7 @@ public:
   };
 
 public:
-  explicit Window(Config config);
+  explicit Window(Config const& config);
   ~Window();
   Window(Window const&) = delete; // 不可拷贝
   Window& operator=(Window const&) = delete;

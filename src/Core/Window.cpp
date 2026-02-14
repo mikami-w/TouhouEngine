@@ -9,8 +9,8 @@
 #include <stdexcept>
 
 namespace Core {
-Window::Window(Config config)
-  : m_config(std::move(config)), m_hWnd(nullptr), m_hInst(GetModuleHandle(nullptr))
+Window::Window(Config const& config)
+  : m_config(config), m_hWnd(nullptr), m_hInst(GetModuleHandle(nullptr))
 {
   // 告诉 Windows 程序自己处理高 DPI, 不需要系统进行 DPI 缩放
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);

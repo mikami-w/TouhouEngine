@@ -26,8 +26,14 @@ void Timer::tick()
   m_deltaTime = (m_currTime - m_prevTime) * m_secondsPerCount;  // 计算两帧之间的时间差
   m_prevTime = m_currTime; // 准备下一个 tick
 
+  // 防止硬件 bug 等导致的负时间
   if (m_deltaTime < 0.0) {
     m_deltaTime = 0.0;
+  }
+
+  // 防止系统休眠或者断点调试导致过大的时间差造成游戏逻辑卡死
+  if (m_deltaTime > 0.25) {
+    m_deltaTime = 0.25;
   }
 
   m_totalTime = (m_currTime - m_baseTime) * m_secondsPerCount;

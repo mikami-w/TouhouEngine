@@ -49,5 +49,46 @@ DX11Device::DX11Device(HWND hWnd, int width, int height)
 
   LOG_DX11_CHECK(hr, "Failed to create D3D11 Device and SwapChain!");
   LOG_INFO("D3D11 Device, Context, and SwapChain created successfully.");
+
+  // 从交换链抽出后台缓冲区的物理内存
+  Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer; // 后台缓冲区
+  hr = m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()));
+  LOG_DX11_CHECK(hr, "Failed to get Back Buffer from SwapChain!");
+
+  // 为内存创建视图 (Render Target View, RTV), 以便后续绑定到输出管线
+  hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_renderTargetView.GetAddressOf());
+  LOG_DX11_CHECK(hr, "Failed to create Render Target View!");
+
+  // 将 RTV 绑定到输出管线的渲染目标插槽(Output Merger, OM)上 (即设置当前渲染目标为后台缓冲区)
+  // 告诉设备上下文, 将来所有的渲染输出都写入这个 RTV (也就是后台缓冲区)
+  m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+
+  // 设置视口 (Viewport), 定义渲染输出在屏幕上的位置和大小
+  D3D11_VIEWPORT vp{};
+  vp.TopLeftX = 0.0f;
+  vp.TopLeftY = 0.0f;
+  vp.Width = static_cast<float>(width);
+  vp.Height = static_cast<float>(height);
+  vp.MinDepth = 0.0f;
+  vp.MaxDepth = 1.0f;
+
+  // 绑定到 Rasterizer (RS) 阶段, 告诉 GPU 如何将裁剪空间的坐标映射到屏幕空间
+  m_context->RSSetViewports(1, &vp);
+
+  LOG_INFO("Render Target View and Viewport initialized.");
+}
+
+void DX11Device::clear(float r, float g, float b, float a)
+{
+  float const color[]{ r, g, b, a };
+  m_context->ClearRenderTargetView(m_renderTargetView.Get(), color);
+}
+
+void DX11Device::present()
+{
+  // 将后台缓冲区内容翻转到前台显示, 参数 1 表示启用垂直同步 (VSync), 0 表示关闭 VSync, 显卡能跑多快就跑多快
+  HRESULT hr = m_swapChain->Present(m_vsync, 0);
+  // Present 可能在某些极端情况失败, 例如设备丢失 (Device Lost), 这时需要重新创建设备和交换链, 目前先简单抛出异常
+  LOG_DX11_CHECK(hr, "Failed to present the SwapChain!");
 }
 } // namespace Graphics

@@ -4,6 +4,8 @@ set(CORE_SOURCES
         StringUtils.cpp
         StringUtils.hpp
         Logger.hpp
+        Timer.cpp
+        Timer.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

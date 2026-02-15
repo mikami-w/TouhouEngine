@@ -22,6 +22,9 @@ public:
   bool getVsync() const { return m_vsync; }
   void setVsync(bool enable) { m_vsync = enable ? 1 : 0; }
 
+  ID3D11Device* getDevice() const { return m_device.Get(); }
+  ID3D11DeviceContext* getContext() const { return m_context.Get(); }
+
 private:
   Microsoft::WRL::ComPtr<ID3D11Device> m_device;
   Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;

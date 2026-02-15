@@ -1,8 +1,9 @@
 #include "Application.hpp"
+#include "Logger.hpp"
+#include "Timer.hpp"
 #include "Window.hpp"
 #include "Graphics/DX11Device.hpp"
-#include "Timer.hpp"
-#include "Logger.hpp"
+#include "Graphics/SpriteRenderer.hpp"
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -35,6 +36,10 @@ Application::Application(Config const& config)
 
   // 初始化计时器
   m_timer = std::make_unique<Timer>();
+
+  //
+  Graphics::SpriteRenderer sr(m_gfx.get());
+  sr.initialize();
 
   LOG_INFO("Application initialized successfully.");
 }

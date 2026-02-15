@@ -1,6 +1,11 @@
 set(GRAPHICS_SOURCES
         DX11Device.cpp
         DX11Device.hpp
+        Shader.cpp
+        Shader.hpp
+        Vertex.hpp
+        SpriteRenderer.cpp
+        SpriteRenderer.hpp
 )
 
 add_library(Graphics STATIC ${GRAPHICS_SOURCES})

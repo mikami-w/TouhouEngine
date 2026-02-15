@@ -1,10 +1,10 @@
 # PCH
 add_library(ProjectPCH INTERFACE)
 target_precompile_headers(ProjectPCH INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/pch/pch.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pch/pch.hpp"
 )
 target_include_directories(ProjectPCH INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/pch"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pch"
 )
 
 add_subdirectory(Core)
@@ -21,17 +21,17 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set_target_properties(TouhouApp PROPERTIES WIN32_EXECUTABLE TRUE)
     # 强行指定 WIN32 程序入口点为 mainCRTStartup
     target_link_options(TouhouApp PRIVATE /ENTRY:mainCRTStartup)
-else()
+else ()
     # Debug 模式：不设置 WIN32，保留控制台窗口以便看日志
     set_target_properties(TouhouApp PROPERTIES WIN32_EXECUTABLE FALSE)
-endif()
+endif ()
 
 target_link_libraries(TouhouApp PRIVATE
         ProjectPCH
         Core
         Graphics
-#        Script
-#        Game
+        #        Script
+        #        Game
 )
 
 add_executable(ScriptCompiler ScriptCompiler_main.cpp)
@@ -41,6 +41,6 @@ set_target_properties(ScriptCompiler PROPERTIES WIN32_EXECUTABLE FALSE)
 
 target_link_libraries(ScriptCompiler PRIVATE
         ProjectPCH
-#        Core
-#        Script
+        #        Core
+        #        Script
 )

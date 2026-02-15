@@ -1,10 +1,5 @@
-#include <iostream>
-
 #include "Core/Application.hpp"
-#include "Core/Timer.hpp"
 #include "Core/Logger.hpp"
-#include "Core/Window.hpp"
-#include "Graphics/DX11Device.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -15,15 +10,10 @@ int main(int argc, char* argv[])
 
   try {
     Core::Application::Config config{
-      .title = "東方弾幕クリエイター ~ Touhou Engine Dev",
-      .width = 800,
-      .height = 600,
-      .vsync = false
+      .title = "東方弾幕クリエイター ~ Touhou Engine Dev", .width = 800, .height = 600, .vsync = false
     };
-
     Core::Application app{ config };
     app.run();
-
   } catch (std::exception& e) {
     LOG_FATAL(e.what());
     return -1;

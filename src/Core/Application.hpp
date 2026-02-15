@@ -35,8 +35,8 @@ public:
   void run(); // 启动应用程序主循环
 
 public:
-  constexpr static double TARGET_FPS = 60.0;
-  constexpr static double SECONDS_PER_FRAME = 1.0 / TARGET_FPS; // 约为 0.0166667 秒
+  static constexpr double TARGET_FPS = 60.0;
+  static constexpr double SECONDS_PER_FRAME = 1.0 / TARGET_FPS; // 约为 0.0166667 秒
 
 private:
   void update(); // 处理逻辑更新, 每帧调用

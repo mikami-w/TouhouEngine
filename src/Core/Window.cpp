@@ -5,12 +5,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include <utility>
 #include <stdexcept>
 
 namespace Core {
 Window::Window(Config const& config)
-  : m_config(config), m_hWnd(nullptr), m_hInst(GetModuleHandle(nullptr))
+  : m_config(config)
+  , m_hWnd(nullptr)
+  , m_hInst(GetModuleHandle(nullptr))
 {
   // 告诉 Windows 程序自己处理高 DPI, 不需要系统进行 DPI 缩放
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -37,7 +38,7 @@ bool Window::processMessages()
       return false;
     }
     TranslateMessage(&msg); // 翻译虚拟键消息
-    DispatchMessage(&msg); // 将消息分发到窗口的消息处理函数
+    DispatchMessage(&msg);  // 将消息分发到窗口的消息处理函数
   }
   return true;
 }
@@ -46,7 +47,7 @@ void Window::registerWindowClass()
 {
   WNDCLASSEX wc{ 0 };
   wc.cbSize = sizeof(wc);
-  wc.style = CS_OWNDC; // 独立的设备上下文
+  wc.style = CS_OWNDC;             // 独立的设备上下文
   wc.lpfnWndProc = handleMsgSetup; // 初始消息处理函数
   wc.cbClsExtra = 0;
   wc.cbWndExtra = 0;
@@ -73,20 +74,18 @@ void Window::createWindowInstance()
 
   auto wTitle = stringToWstring(m_config.title);
   // 创建窗口
-  m_hWnd = CreateWindowEx(
-    0,
-    m_className.c_str(),
-    wTitle.c_str(),
-    WS_OVERLAPPEDWINDOW,
-    CW_USEDEFAULT,
-    CW_USEDEFAULT,
-    wr.right - wr.left,
-    wr.bottom - wr.top,
-    nullptr,
-    nullptr,
-    m_hInst,
-    this
-    );
+  m_hWnd = CreateWindowEx(0,
+                          m_className.c_str(),
+                          wTitle.c_str(),
+                          WS_OVERLAPPEDWINDOW,
+                          CW_USEDEFAULT,
+                          CW_USEDEFAULT,
+                          wr.right - wr.left,
+                          wr.bottom - wr.top,
+                          nullptr,
+                          nullptr,
+                          m_hInst,
+                          this);
 
   if (!m_hWnd) {
     throw std::runtime_error("Failed to create window instance");

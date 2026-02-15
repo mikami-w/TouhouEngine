@@ -10,6 +10,9 @@ struct Vertex
 
   Vertex() = default;
   Vertex(float x, float y, float z, float u, float v)
-    : position(x, y, z), texCoord(u, v) {}
+    : position(x, y, z)
+    , texCoord(u, v)
+  {
+  }
 };
 } // namespace Graphics

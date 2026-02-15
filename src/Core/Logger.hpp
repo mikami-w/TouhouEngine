@@ -1,15 +1,15 @@
 #pragma once
 
-#include <iostream>
-#include <cstdint>
-#include <string_view>
 #include <chrono>
+#include <cstdint>
+#include <iostream>
+#include <string_view>
 
 namespace Core {
 class Logger
 {
 public:
-  enum class LogLevel: std::uint8_t
+  enum class LogLevel : std::uint8_t
   {
     DEBUG_,
     INFO_,
@@ -52,9 +52,9 @@ private:
   {
     using namespace std::chrono;
 
-    const auto now = system_clock::now();
-    const auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000ms;
-    const std::time_t now_time_t = system_clock::to_time_t(now);
+    auto const now = system_clock::now();
+    auto const ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000ms;
+    std::time_t const now_time_t = system_clock::to_time_t(now);
 
     std::tm now_tm{};
     localtime_s(&now_tm, &now_time_t);

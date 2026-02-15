@@ -17,7 +17,7 @@ public:
   DX11Device& operator=(DX11Device const&) = delete;
 
   void clear(float r, float g, float b, float a); // 清屏函数，接受 RGBA 颜色值
-  void present(); // 显示当前帧, 即将后台缓冲区内容翻转到前台显示
+  void present();                                 // 显示当前帧, 即将后台缓冲区内容翻转到前台显示
 
   bool getVsync() const { return m_vsync; }
   void setVsync(bool enable) { m_vsync = enable ? 1 : 0; }

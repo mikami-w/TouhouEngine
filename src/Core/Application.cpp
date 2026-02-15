@@ -1,9 +1,9 @@
 #include "Application.hpp"
+#include "Graphics/DX11Device.hpp"
+#include "Graphics/SpriteRenderer.hpp"
 #include "Logger.hpp"
 #include "Timer.hpp"
 #include "Window.hpp"
-#include "Graphics/DX11Device.hpp"
-#include "Graphics/SpriteRenderer.hpp"
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -14,24 +14,17 @@
 namespace Core {
 
 Application::Application(Config const& config)
-  : m_config(config), m_isRunning(true)
+  : m_config(config)
+  , m_isRunning(true)
 {
   LOG_INFO("Initializing application...");
 
   // 初始化窗口
-  Window::Config wndConfig{
-    .title = m_config.title,
-    .width = m_config.width,
-    .height = m_config.height
-  };
+  Window::Config wndConfig{ .title = m_config.title, .width = m_config.width, .height = m_config.height };
   m_window = std::make_unique<Window>(wndConfig);
 
   // 初始化图形设备 DirectX 11 (传入窗口句柄)
-  m_gfx = std::make_unique<Graphics::DX11Device>(
-    m_window->getHandle(),
-    m_config.width,
-    m_config.height
-    );
+  m_gfx = std::make_unique<Graphics::DX11Device>(m_window->getHandle(), m_config.width, m_config.height);
   m_gfx->setVsync(m_config.vsync);
 
   // 初始化计时器
@@ -67,10 +60,12 @@ void Application::run()
 
     // 逻辑更新 (Update)
     // 只有累积的时间经过了一帧的时间 (1/60s), 才执行一次更新循环
-    // 若由于卡顿等原因 accumulatedTime 积累了 2 帧或更多, 则连续执行多次更新循环而不渲染, 以追赶上当前时间
+    // 若由于卡顿等原因 accumulatedTime 积累了 2 帧或更多,
+    // 则连续执行多次更新循环而不渲染, 以追赶上当前时间
     bool isUpdated = false;
-    int updateCount = 0;  // 统计连续更新的次数, 用于限制最大连续更新次数, 模拟处理落机制
-    while (accumulatedTime >= SECONDS_PER_FRAME && updateCount++ < 2) { // 最多连续更新 2 次, 即通过处理落机制最多降低到 30fps
+    int updateCount = 0; // 统计连续更新的次数, 用于限制最大连续更新次数, 模拟处理落机制
+    while (accumulatedTime >= SECONDS_PER_FRAME &&
+           updateCount++ < 2) { // 最多连续更新 2 次, 即通过处理落机制最多降低到 30fps
       update();
       accumulatedTime -= SECONDS_PER_FRAME; // 减去一帧的时间
       isUpdated = true;

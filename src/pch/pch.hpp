@@ -1,30 +1,31 @@
 #pragma once
 
 // Standard Library
-#include <map>
+#include <algorithm>
 #include <chrono>
-#include <memory>
-#include <string>
-#include <vector>
 #include <cstddef>
 #include <cstdint>
-#include <fstream>
-#include <utility>
-#include <iostream>
-#include <algorithm>
-#include <stdexcept>
 #include <filesystem>
+#include <fstream>
 #include <functional>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 // DirectX 11
+#include <DirectXMath.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-#include <DirectXMath.h>
 
 // Windows API
-// Prevent Windows.h from defining min and max macros, and exclude rarely-used services from Windows headers
+// Prevent Windows.h from defining min and max macros, and exclude rarely-used
+// services from Windows headers
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

@@ -11,8 +11,9 @@ namespace Graphics {
 class VertexShader
 {
 public:
-  VertexShader(ID3D11Device* device, ID3DBlob* bytecode); // 构造函数接收编译后的字节码 Blob
-  void Bind(ID3D11DeviceContext* context);          // 绑定到管线
+  // 构造函数接收编译后的字节码 Blob
+  VertexShader(ID3D11Device* device, ID3DBlob* bytecode);
+  void Bind(ID3D11DeviceContext* context); // 绑定到管线
   ID3DBlob* getBytecode() const { return m_bytecode.Get(); }
 
 private:

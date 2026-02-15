@@ -84,7 +84,7 @@ Microsoft::WRL::ComPtr<ID3DBlob> ShaderCompiler::compile(std::string const& file
                           flags,                       // 编译标志
                           0,                           // 编译标志
                           bytecodeBlob.GetAddressOf(), // [输出] 成功后的字节码
-                          errorBlob.GetAddressOf()     // [输出]失败后的错误信息
+                          errorBlob.GetAddressOf()     // [输出] 失败后的错误信息
   );
 
   if (FAILED(hr)) {

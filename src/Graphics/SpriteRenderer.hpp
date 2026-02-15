@@ -18,6 +18,8 @@ public:
   void begin();      // 开始渲染当前帧的 Sprites
   void end();        // 结束渲染
 
+  void drawTestQuad();
+
 private:
   DX11Device* m_device; // 不管理生命周期
 
@@ -25,5 +27,9 @@ private:
   std::unique_ptr<VertexShader> m_vertexShader;
   std::unique_ptr<PixelShader> m_pixelShader;
   std::unique_ptr<InputLayout> m_inputLayout;
+
+  // 顶点/索引缓冲区
+  Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
+  Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
 };
 } // namespace Graphics

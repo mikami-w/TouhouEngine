@@ -1,5 +1,7 @@
 #include "SpriteRenderer.hpp"
+
 #include "Core/Logger.hpp"
+#include "Vertex.hpp"
 
 namespace Graphics {
 
@@ -36,8 +38,49 @@ void SpriteRenderer::initialize()
     // 纹理坐标紧跟在 position 后面，position 占了 12 字节，所以偏移量为 12 (D3D11_APPEND_ALIGNED_ELEMENT 自动计算)
     { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
   };
-
   m_inputLayout = std::make_unique<InputLayout>(m_device->getDevice(), layoutDesc, vsBytecode.Get());
+
+  // 创建顶点缓冲区
+  // 目前没有使用矩阵变换, 直接使用 GPU 的归一化设备坐标 (NDC)
+  // NDC 坐标系中，屏幕中心是 (0,0)，左下角是 (-1,-1)，右上角是 (1,1)
+  Vertex vertices[] = {
+    Vertex(-0.5f, -0.5f, 0.0f, 0.0f, 1.0f), // 左下角 (索引 0)
+    Vertex(-0.5f, 0.5f, 0.0f, 0.0f, 0.0f),  // 左上角 (索引 1)
+    Vertex(0.5f, 0.5f, 0.0f, 1.0f, 0.0f),   // 右上角 (索引 2)
+    Vertex(0.5f, -0.5f, 0.0f, 1.0f, 1.0f)   // 右下角 (索引 3)
+  };
+
+  D3D11_BUFFER_DESC vbd{};
+  vbd.Usage = D3D11_USAGE_IMMUTABLE; // 声明这些顶点永远不会变，显卡会把它放在最快的内存区
+  vbd.ByteWidth = sizeof(vertices);
+  vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 告诉显卡这个是顶点缓冲区
+  vbd.CPUAccessFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA vInitData{};
+  vInitData.pSysMem = vertices; // 指向 C++ 内存中的数据
+
+  HRESULT hr = m_device->getDevice()->CreateBuffer(&vbd, &vInitData, m_vertexBuffer.GetAddressOf());
+  LOG_DX11_CHECK(hr, "Failed to create Vertex Buffer.");
+
+  // 创建索引缓冲区
+  // 定义如何连接上述 4 个顶点来组成 2 个三角形 (顺时针)
+  unsigned int indices[] = {
+    0, 1, 2, // 第一个三角形: 左下, 左上, 右上
+    0, 2, 3  // 第二个三角形: 左下, 右上, 右下
+  };
+
+  D3D11_BUFFER_DESC ibd{};
+  ibd.Usage = D3D11_USAGE_IMMUTABLE;
+  ibd.ByteWidth = sizeof(indices);
+  ibd.BindFlags = D3D11_BIND_INDEX_BUFFER; // 告诉显卡这是个索引缓冲区
+  ibd.CPUAccessFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA iInitData{};
+  iInitData.pSysMem = indices;
+
+  hr = m_device->getDevice()->CreateBuffer(&ibd, &iInitData, m_indexBuffer.GetAddressOf());
+  LOG_DX11_CHECK(hr, "Failed to create Index Buffer.");
+
   LOG_INFO("SpriteRenderer Pipeline initialized successfully.");
 }
 
@@ -57,5 +100,21 @@ void SpriteRenderer::begin()
 void SpriteRenderer::end()
 {
   // 目前暂不需要清理状态, 留作扩展口
+}
+
+void SpriteRenderer::drawTestQuad()
+{
+  auto context = m_device->getContext();
+
+  // 绑定顶点缓冲区
+  UINT stride = sizeof(Vertex); // 告诉显卡每个顶点跨度多大
+  UINT offset = 0;
+  context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+
+  // 绑定索引缓冲区
+  context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+  // Draw Call
+  context->DrawIndexed(6, 0, 0);
 }
 } // namespace Graphics

@@ -9,7 +9,7 @@ namespace Graphics {
 class DX11Device
 {
 public:
-  DX11Device(HWND hWnd, int width, int height);
+  DX11Device(HWND hWnd, int width, int height, bool vsync = false);
   ~DX11Device() = default; // 使用默认析构函数，Microsoft::WRL::ComPtr 会自动释放资源
 
   // 禁止拷贝和赋值, 独占显卡资源
@@ -31,6 +31,6 @@ private:
   Microsoft::WRL::ComPtr<IDXGISwapChain> m_swapChain;
   Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_renderTargetView;
 
-  unsigned m_vsync{ 0 };
+  unsigned m_vsync;
 };
 } // namespace Graphics

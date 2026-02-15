@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Graphics/SpriteRenderer.hpp"
+
 #include <memory>
 #include <string>
 
@@ -49,5 +51,6 @@ private:
   std::unique_ptr<Core::Window> m_window;
   std::unique_ptr<Graphics::DX11Device> m_gfx;
   std::unique_ptr<Core::Timer> m_timer;
+  std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
 };
 } // namespace Core

@@ -2,7 +2,8 @@
 #include "Core/Logger.hpp"
 
 namespace Graphics {
-DX11Device::DX11Device(HWND hWnd, int width, int height)
+DX11Device::DX11Device(HWND hWnd, int width, int height, bool vsync)
+  : m_vsync(vsync)
 {
   // 描述交换链的属性 (描述书)
   DXGI_SWAP_CHAIN_DESC sd{};

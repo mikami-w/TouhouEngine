@@ -24,15 +24,15 @@ Application::Application(Config const& config)
   m_window = std::make_unique<Window>(wndConfig);
 
   // 初始化图形设备 DirectX 11 (传入窗口句柄)
-  m_gfx = std::make_unique<Graphics::DX11Device>(m_window->getHandle(), m_config.width, m_config.height);
-  m_gfx->setVsync(m_config.vsync);
+  m_gfx =
+    std::make_unique<Graphics::DX11Device>(m_window->getHandle(), m_config.width, m_config.height, m_config.vsync);
 
   // 初始化计时器
   m_timer = std::make_unique<Timer>();
 
   //
-  Graphics::SpriteRenderer sr(m_gfx.get());
-  sr.initialize();
+  m_spriteRenderer = std::make_unique<Graphics::SpriteRenderer>(m_gfx.get());
+  m_spriteRenderer->initialize();
 
   LOG_INFO("Application initialized successfully.");
 }
@@ -89,11 +89,10 @@ void Application::update()
 
 void Application::render()
 {
-
-  m_gfx->clear(0.5f, 0.0f, 0.5f, 1.0f); // 清屏
-
-  // TODO: 通知 SpriteBatch 进行批量绘制
-
-  m_gfx->present(); // 呈现到屏幕
+  m_gfx->clear(0.5f, 0.0f, 0.5f, 1.0f); // 清屏(背景)
+  m_spriteRenderer->begin();            // 开启渲染管线状态
+  m_spriteRenderer->drawTestQuad();
+  m_spriteRenderer->end(); // 结束渲染管线状态
+  m_gfx->present();        // 呈现到屏幕
 }
 } // namespace Core

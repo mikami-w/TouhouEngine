@@ -10,6 +10,7 @@
 #include <windows.h>
 
 #include <memory>
+#include <numbers>
 
 namespace Core {
 
@@ -30,9 +31,10 @@ Application::Application(Config const& config)
   // 初始化计时器
   m_timer = std::make_unique<Timer>();
 
-  //
+  // 初始化渲染管线
   m_spriteRenderer = std::make_unique<Graphics::SpriteRenderer>(m_gfx.get());
   m_spriteRenderer->initialize();
+  m_spriteRenderer->updateProjectionMatrix(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
 
   LOG_INFO("Application initialized successfully.");
 }
@@ -91,7 +93,15 @@ void Application::render()
 {
   m_gfx->clear(0.5f, 0.0f, 0.5f, 1.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态
-  m_spriteRenderer->drawTestQuad();
+  float time = static_cast<float>(m_timer->getTotalTime());
+
+  float x = 400.0f + std::sin(time * 2.0f) * 200.0f;
+  float y = 300.0f + std::sin(time * 2.0f) * 200.0f;
+  float angle = time * std::numbers::pi_v<float>;
+  float width = 100.0f;
+  float height = 100.0f;
+
+  m_spriteRenderer->drawTestQuad(x, y, angle, width, height);
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕
 }

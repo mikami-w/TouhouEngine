@@ -50,7 +50,8 @@ private:
   Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;    // 索引缓冲区
   Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer; // 常量缓冲区
 
-  Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState; // 光栅化状态对象
+  Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState; // 光栅化状态
+  Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;       // 采样器状态
 
   // 缓存的投影矩阵 (只要窗口大小不变, 投影矩阵就不变)
   DirectX::XMFLOAT4X4 m_projectionMatrix;

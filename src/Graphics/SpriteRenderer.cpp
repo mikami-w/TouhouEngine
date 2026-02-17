@@ -49,6 +49,9 @@ void SpriteRenderer::begin()
 
   // 拓扑结构: 告诉 GPU 传来的是一系列三角形
   context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  // 把采样器绑定到像素着色器 (PS) 的第 0 号槽位
+  context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 }
 
 void SpriteRenderer::end()
@@ -70,16 +73,12 @@ void SpriteRenderer::drawTestQuad(float x, float y, float angle, float scaleX, f
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   // Map: 锁定一块区域让 CPU 写入
   HRESULT hr = m_device->getContext()->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-  if (SUCCEEDED(hr)) {
-    TransformCBuffer* dataPtr = (TransformCBuffer*)mappedResource.pData;
+  LOG_DX11_CHECK(hr, "Failed to map Constant Buffer!");
 
-    dataPtr->projection = m_projectionMatrix;
-    DirectX::XMStoreFloat4x4(&dataPtr->world, DirectX::XMMatrixTranspose(worldMatrix));
-
-    // 解除锁定
-    context->Unmap(m_constantBuffer.Get(), 0);
-  }
-  // TODO: 失败处理
+  TransformCBuffer* dataPtr = (TransformCBuffer*)mappedResource.pData;
+  dataPtr->projection = m_projectionMatrix;
+  DirectX::XMStoreFloat4x4(&dataPtr->world, DirectX::XMMatrixTranspose(worldMatrix));
+  context->Unmap(m_constantBuffer.Get(), 0); // 解除锁定
 
   // 将常量缓冲区绑定到管线的 VS 的 0 号槽位
   context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
@@ -177,6 +176,7 @@ void SpriteRenderer::initBuffers()
 
 void SpriteRenderer::initRasterizerState()
 {
+  // 创建光栅化器状态
   D3D11_RASTERIZER_DESC rd{};
   rd.FillMode = D3D11_FILL_SOLID;   // 实心填充
   rd.CullMode = D3D11_CULL_NONE;    // 关闭背面剔除
@@ -185,6 +185,21 @@ void SpriteRenderer::initRasterizerState()
 
   HRESULT hr = m_device->getDevice()->CreateRasterizerState(&rd, m_rasterizerState.GetAddressOf());
   LOG_DX11_CHECK(hr, "Failed to create Rasterizer State.");
+
+  // 创建采样器状态
+  D3D11_SAMPLER_DESC sampDesc{};
+  sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // 缩放使用线性平滑插值
+
+  sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+  sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+  sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+  sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+  sampDesc.MinLOD = 0;
+  sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+  hr = m_device->getDevice()->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
+  LOG_DX11_CHECK(hr, "Failed to create Sampler State.");
 }
 
 } // namespace Graphics

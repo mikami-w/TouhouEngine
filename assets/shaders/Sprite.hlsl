@@ -5,6 +5,10 @@ cbuffer TransformBuffer : register(b0)
   matrix world;       // 世界矩阵, 负责通过缩放, 旋转, 平移等仿射变换将局部坐标系映射到世界坐标系
 };
 
+// 纹理资源和采样器状态
+Texture2D spriteTexture : register(t0); // 纹理资源绑定到 t0
+SamplerState spriteSampler : register(s0); // 采样器状态绑定到 s0
+
 // CPU 传给顶点着色器的数据结构
 struct VSInput
 {
@@ -40,8 +44,10 @@ PSInput VSMain(VSInput input)
 // 像素着色器 (Pixel Shader)
 float4 PSMain(PSInput input) : SV_TARGET
 {
-  // 目前只输出一个固定颜色 (红色)，用于测试管线是否打通
-  // 返回 RGBA 颜色 (红色不透明)
-  // 等纹理模块做好了，这里会改成读取纹理的颜色
-  return float4(1.0f, 0.0f, 0.0f, 1.0f);
+  float4 color = spriteTexture.Sample(spriteSampler, input.texCoord);
+  if (color.a < 0.1f) {
+    // 如果 alpha 值小于 0.1 (透明), 则丢弃该像素, 用于节省性能
+    discard;
+  }
+  return color;
 }

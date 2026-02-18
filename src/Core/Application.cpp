@@ -101,7 +101,7 @@ void Application::render()
 
   float x = std::sin(time) * 200.0f + 400.0f;
   float y = std::sin(std::sin(time) * 3.14159f) * 200.0f + 300.0f;
-  float angle = std::sin(time) * 0.2f + 3.14159f;
+  float angle = std::sin(time) * 0.2f;
   float width = m_textureYukari->getWidth() >> 2;
   float height = m_textureYukari->getHeight() >> 2;
 

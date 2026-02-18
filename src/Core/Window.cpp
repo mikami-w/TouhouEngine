@@ -53,7 +53,7 @@ void Window::registerWindowClass()
   wc.cbWndExtra = 0;
   wc.hInstance = m_hInst;
   wc.hIcon = nullptr;
-  wc.hCursor = nullptr;
+  wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
   wc.hbrBackground = nullptr;
   wc.lpszMenuName = nullptr;
   wc.lpszClassName = m_className.c_str();

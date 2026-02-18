@@ -20,7 +20,7 @@ void SpriteRenderer::initialize()
 
   initShaders();
   initBuffers();
-  initRasterizerState();
+  initStates();
 
   LOG_INFO("SpriteRenderer Pipeline initialized successfully.");
 }
@@ -47,11 +47,14 @@ void SpriteRenderer::begin()
   // 绑定光栅化状态
   context->RSSetState(m_rasterizerState.Get());
 
-  // 拓扑结构: 告诉 GPU 传来的是一系列三角形
-  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
   // 把采样器绑定到像素着色器 (PS) 的第 0 号槽位
   context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+
+  // 绑定混合状态, nullptr 表示不使用混合因子常量，0xffffffff 表示所有多重采样遮罩全开
+  context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
+
+  // 拓扑结构: 告诉 GPU 传来的是一系列三角形
+  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void SpriteRenderer::end()
@@ -59,9 +62,17 @@ void SpriteRenderer::end()
   // 目前暂不需要清理状态, 留作扩展口
 }
 
-void SpriteRenderer::drawTestQuad(float x, float y, float angle, float scaleX, float scaleY)
+void SpriteRenderer::drawSprite(Texture* texture, float x, float y, float angle, float scaleX, float scaleY)
 {
+  if (!texture) {
+    return;
+  }
+
   auto context = m_device->getContext();
+
+  // 绑定贴图到像素着色器 (PS) 的第 0 号插槽
+  ID3D11ShaderResourceView* srvs[]{ texture->getSRV() };
+  context->PSSetShaderResources(0, 1, srvs);
 
   // 计算当前方块的世界矩阵(缩放->旋转->平移)
   DirectX::XMMATRIX scaling = DirectX::XMMatrixScaling(scaleX, scaleY, 1.0f);
@@ -174,7 +185,7 @@ void SpriteRenderer::initBuffers()
   LOG_DX11_CHECK(hr, "Failed to create constant buffer.");
 }
 
-void SpriteRenderer::initRasterizerState()
+void SpriteRenderer::initStates()
 {
   // 创建光栅化器状态
   D3D11_RASTERIZER_DESC rd{};
@@ -200,6 +211,26 @@ void SpriteRenderer::initRasterizerState()
 
   hr = m_device->getDevice()->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
   LOG_DX11_CHECK(hr, "Failed to create Sampler State.");
+
+  // 创建 Alpha 混合状态
+  D3D11_BLEND_DESC blendDesc{};
+  blendDesc.RenderTarget[0].BlendEnable = TRUE; // 开启混合
+
+  // 混合公式: 最终颜色 = (贴图颜色 * 贴图Alpha) + (背景颜色 * (1 - 贴图Alpha))
+  blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+  blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+  blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
+  // Alpha 通道的混合逻辑 (通常直接覆盖或相加)
+  blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+  blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+  blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+  // 允许写入所有颜色通道
+  blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+  hr = m_device->getDevice()->CreateBlendState(&blendDesc, m_blendState.GetAddressOf());
+  LOG_DX11_CHECK(hr, "Failed to create Blend State.");
 }
 
 } // namespace Graphics

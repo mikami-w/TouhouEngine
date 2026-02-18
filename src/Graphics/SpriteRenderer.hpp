@@ -1,6 +1,7 @@
 #pragma once
 #include "DX11Device.hpp"
 #include "Shader.hpp"
+#include "Texture.hpp"
 
 #include <DirectXMath.h>
 #include <memory>
@@ -30,13 +31,13 @@ public:
   void begin(); // 开始渲染当前帧的 Sprites
   void end();   // 结束渲染
 
-  // x, y 是屏幕像素坐标, angle 是弧度, scaleX/Y 是宽高像素大小
-  void drawTestQuad(float x, float y, float angle, float scaleX, float scaleY);
+  // x, y 屏幕像素坐标, angle 弧度, scaleX/Y 宽高像素大小
+  void drawSprite(Texture* texture, float x, float y, float angle, float scaleX, float scaleY);
 
 private:
   void initShaders();
   void initBuffers();
-  void initRasterizerState();
+  void initStates();
 
 private:
   DX11Device* m_device; // 不管理生命周期
@@ -52,6 +53,7 @@ private:
 
   Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState; // 光栅化状态
   Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;       // 采样器状态
+  Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;           // 混合状态
 
   // 缓存的投影矩阵 (只要窗口大小不变, 投影矩阵就不变)
   DirectX::XMFLOAT4X4 m_projectionMatrix;

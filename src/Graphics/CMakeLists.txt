@@ -6,6 +6,8 @@ set(GRAPHICS_SOURCES
         Vertex.hpp
         SpriteRenderer.cpp
         SpriteRenderer.hpp
+        Texture.cpp
+        Texture.hpp
 )
 
 add_library(Graphics STATIC ${GRAPHICS_SOURCES})
@@ -17,6 +19,7 @@ target_include_directories(Graphics PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Graphics
         PUBLIC ProjectPCH
         PUBLIC d3d11 d3dcompiler dxgi
+        PRIVATE Vendor
         PRIVATE Core
 )
 

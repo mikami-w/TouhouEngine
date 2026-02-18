@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Graphics/SpriteRenderer.hpp"
+#include "Graphics/Texture.hpp"
 
 #include <memory>
 #include <string>
@@ -52,5 +53,6 @@ private:
   std::unique_ptr<Graphics::DX11Device> m_gfx;
   std::unique_ptr<Core::Timer> m_timer;
   std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
+  std::unique_ptr<Graphics::Texture> m_textureYukari;
 };
 } // namespace Core

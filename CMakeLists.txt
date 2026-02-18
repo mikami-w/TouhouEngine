@@ -29,3 +29,4 @@ add_compile_definitions(UNICODE _UNICODE _CRT_SECURE_NO_WARNINGS)
 # ===== Build Targets =====
 
 add_subdirectory(src)
+add_subdirectory(vendor)

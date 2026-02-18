@@ -36,6 +36,10 @@ Application::Application(Config const& config)
   m_spriteRenderer->initialize();
   m_spriteRenderer->updateProjectionMatrix(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
 
+  // 加载贴图
+  auto texPath = std::filesystem::current_path() / "assets/textures/yukari.png";
+  m_textureYukari = std::make_unique<Graphics::Texture>(m_gfx.get(), texPath.string());
+
   LOG_INFO("Application initialized successfully.");
 }
 
@@ -95,13 +99,14 @@ void Application::render()
   m_spriteRenderer->begin();            // 开启渲染管线状态
   float time = static_cast<float>(m_timer->getTotalTime());
 
-  float x = 400.0f + std::sin(time * 2.0f) * 200.0f;
-  float y = 300.0f + std::sin(time * 2.0f) * 200.0f;
-  float angle = time * std::numbers::pi_v<float>;
-  float width = 100.0f;
-  float height = 100.0f;
+  float x = std::sin(time) * 200.0f + 400.0f;
+  float y = std::sin(std::sin(time) * 3.14159f) * 200.0f + 300.0f;
+  float angle = std::sin(time) * 0.2f + 3.14159f;
+  float width = m_textureYukari->getWidth() >> 2;
+  float height = m_textureYukari->getHeight() >> 2;
 
-  m_spriteRenderer->drawTestQuad(x, y, angle, width, height);
+  m_spriteRenderer->drawSprite(m_textureYukari.get(), x, y, angle, width, height);
+
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕
 }

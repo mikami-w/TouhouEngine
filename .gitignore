@@ -4,5 +4,4 @@
 build
 cmake-build*
 
-src/Game
 src/Script

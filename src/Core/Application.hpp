@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/BulletManager.hpp"
 #include "Graphics/SpriteRenderer.hpp"
 #include "Graphics/Texture.hpp"
 
@@ -53,6 +54,10 @@ private:
   std::unique_ptr<Graphics::DX11Device> m_gfx;
   std::unique_ptr<Core::Timer> m_timer;
   std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
+
+  // for test
   std::unique_ptr<Graphics::Texture> m_textureYukari;
+  Game::BulletManager m_bulletManager;
+  int m_frameCount = 0;
 };
 } // namespace Core

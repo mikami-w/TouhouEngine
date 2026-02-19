@@ -2,6 +2,7 @@
 #include "Graphics/DX11Device.hpp"
 #include "Graphics/SpriteRenderer.hpp"
 #include "Logger.hpp"
+#include "MathUtils.hpp"
 #include "Timer.hpp"
 #include "Window.hpp"
 
@@ -39,6 +40,8 @@ Application::Application(Config const& config)
   // 加载贴图
   auto texPath = std::filesystem::current_path() / "assets/textures/yukari.png";
   m_textureYukari = std::make_unique<Graphics::Texture>(m_gfx.get(), texPath.string());
+
+  m_bulletManager.init(20000); // 初始化弹幕池, 最多支持 20000 发子弹
 
   LOG_INFO("Application initialized successfully.");
 }
@@ -90,24 +93,56 @@ void Application::run()
 
 void Application::update()
 {
-  // TODO: 引擎的核心逻辑 (更新虚拟机、子弹位置、处理碰撞) 在这里调用
+  ++m_frameCount;
+
+  if (m_frameCount & 1) {
+    // 每两帧生成一颗子弹, 以测试 BulletManager 的性能
+    float angle = static_cast<float>(m_timer->getTotalTime());
+    int speed = 10;
+    Game::Bullet bullet{ .x = static_cast<float>(m_config.width / 2),
+                         .y = static_cast<float>(m_config.height / 2),
+                         .vx = speed * Math::cos(angle),
+                         .vy = speed * Math::sin(angle),
+                         .type = 0,
+                         .color = 0 };
+    m_bulletManager.spawnBullet(bullet);
+  }
+  // 更新子弹位置, 并回收出界子弹
+  m_bulletManager.update(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
 }
 
 void Application::render()
 {
-  m_gfx->clear(0.5f, 0.0f, 0.5f, 1.0f); // 清屏(背景)
+  m_gfx->clear(0.3f, 0.0f, 0.3f, 1.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态
   float time = static_cast<float>(m_timer->getTotalTime());
 
-  float x = std::sin(time) * 200.0f + 400.0f;
-  float y = std::sin(std::sin(time) * 3.14159f) * 200.0f + 300.0f;
-  float angle = std::sin(time) * 0.2f;
+  Game::Bullet const* bullets = m_bulletManager.getActiveBullets();
+  size_t count = m_bulletManager.getActiveCount();
+
+  // 暂时复用八云紫的贴图来当做子弹, 缩小到 20x20
+  for (size_t i = 0; i < count; i++) {
+    Game::Bullet const& b = bullets[i];
+    m_spriteRenderer->drawSprite(m_textureYukari.get(),
+                                 b.x,
+                                 b.y,
+                                 0.0f, // 子弹暂不旋转
+                                 30.0f,
+                                 30.0f // 子弹大小
+    );
+  }
+
+  // float x = std::sin(time) * 200.0f + 400.0f;
+  // float y = std::sin(std::sin(time) * 3.14159f) * 200.0f + 300.0f;
+  float angle = Math::sin(time) * 0.2f;
   float width = m_textureYukari->getWidth() >> 2;
   float height = m_textureYukari->getHeight() >> 2;
 
-  m_spriteRenderer->drawSprite(m_textureYukari.get(), x, y, angle, width, height);
+  m_spriteRenderer->drawSprite(m_textureYukari.get(), m_config.width / 2, m_config.height / 2, angle, -width, height);
 
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕
+
+  // LOG_DEBUG(std::format("Active Bullets: {}", m_bulletManager.getActiveCount()));
 }
 } // namespace Core

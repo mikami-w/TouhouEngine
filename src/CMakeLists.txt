@@ -9,8 +9,8 @@ target_include_directories(ProjectPCH INTERFACE
 
 add_subdirectory(Core)
 add_subdirectory(Graphics)
+add_subdirectory(Game)
 #add_subdirectory(Script)
-#add_subdirectory(Game)
 
 add_executable(TouhouApp Engine_main.cpp)
 
@@ -30,8 +30,8 @@ target_link_libraries(TouhouApp PRIVATE
         ProjectPCH
         Core
         Graphics
+        Game
         #        Script
-        #        Game
 )
 
 add_executable(ScriptCompiler ScriptCompiler_main.cpp)

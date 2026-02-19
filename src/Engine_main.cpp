@@ -1,5 +1,6 @@
 #include "Core/Application.hpp"
 #include "Core/Logger.hpp"
+#include "Core/MathUtils.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -7,6 +8,8 @@ int main(int argc, char* argv[])
   // 开启 CRT 内存泄漏检测
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
+
+  Core::Math::initMathUtils();
 
   try {
     Core::Application::Config config{

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/Logger.hpp"
+
 #include <array>
 #include <cmath>
 #include <numbers>
@@ -54,5 +56,15 @@ __forceinline inline float sinLerp(float radians) noexcept
 __forceinline inline float cosLerp(float radians) noexcept
 {
   return sinLerp(radians + std::numbers::pi_v<float> / 2.0f);
+}
+
+inline void initMathUtils()
+{
+  LOG_INFO("Initializing MathUtils...");
+
+  // 触发 sinTable 的初始化
+  (void)sinTable;
+
+  LOG_INFO("MathUtils initialized.");
 }
 } // namespace Core::Math

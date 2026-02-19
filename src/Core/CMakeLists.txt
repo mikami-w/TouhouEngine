@@ -8,6 +8,7 @@ set(CORE_SOURCES
         Timer.hpp
         Application.cpp
         Application.hpp
+        MathUtils.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

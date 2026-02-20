@@ -95,15 +95,23 @@ void Application::update()
 {
   ++m_frameCount;
 
-  if (m_frameCount & 1) {
-    // 每两帧生成一颗子弹, 以测试 BulletManager 的性能
-    m_bulletManager.spawnBulletA(static_cast<float>(m_config.width / 2),
-                                 static_cast<float>(m_config.height / 2),
-                                 static_cast<float>(m_timer->getTotalTime()),
-                                 10,
-                                 0,
-                                 0);
-  }
+  constexpr float PI_2_3 = std::numbers::pi_v<float> * 2 / 3.0f; // 120度的弧度值
+  static constexpr float spawnAngAccel = 0.001f;
+  static float spawnAngle = 0.0f;
+  static float spawnAngVel = 0.0f;
+  spawnAngVel += spawnAngAccel; // 逐渐加速旋转
+  spawnAngle += spawnAngVel;
+  Game::Bullet b{ .x = m_config.width / 2.0f, .y = m_config.height / 2.0f };
+  b.angle = spawnAngle;
+  b.speed = 8.0f;
+
+  // 每帧生成 3 颗子弹
+  m_bulletManager.spawnBullet(b);
+  b.angle += PI_2_3;
+  m_bulletManager.spawnBullet(b);
+  b.angle += PI_2_3;
+  m_bulletManager.spawnBullet(b);
+
   // 更新子弹位置, 并回收出界子弹
   m_bulletManager.update(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
 }
@@ -123,7 +131,7 @@ void Application::render()
     m_spriteRenderer->drawSprite(m_textureYukari.get(),
                                  b.x,
                                  b.y,
-                                 0.0f, // 子弹暂不旋转
+                                 b.angle - std::numbers::pi_v<float> / 2, // 子弹总是面向运动方向
                                  30.0f,
                                  30.0f // 子弹大小
     );

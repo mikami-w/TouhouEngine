@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 
   try {
     Core::Application::Config config{
-      .title = "東方弾幕クリエイター ~ Touhou Engine Dev", .width = 800, .height = 600, .vsync = false
+      .title = "東方弾幕クリエイター ~ Touhou Engine Dev", .width = 1280, .height = 960, .vsync = false
     };
     Core::Application app{ config };
     app.run();

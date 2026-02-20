@@ -31,7 +31,7 @@ __forceinline inline float sin(float radians) noexcept
   // 将角度转换为 [0, 1024) 范围内的索引
   int index = static_cast<int>(radians * RadToIndex) & 1023; // 1023 = 0x3FF = 0b11'1111'1111, 处理负数和大于 2pi 的情况
   return sinTable[index];
-};
+}
 
 __forceinline inline float cos(float radians) noexcept
 {

@@ -1,5 +1,6 @@
 #include "BulletManager.hpp"
 #include "Core/Logger.hpp"
+#include "Core/MathUtils.hpp"
 
 #include <format>
 
@@ -12,7 +13,7 @@ void BulletManager::init(std::size_t capacity)
   LOG_INFO(std::format("BulletManager initialized with capacity: {}", capacity));
 }
 
-void BulletManager::spawnBullet(Bullet const& bullet)
+void BulletManager::spawnBullet(Bullet const& bullet) noexcept
 {
   if (m_bullets.size() <= m_activeCount) {
     LOG_WARN("BulletManager capacity reached. Cannot spawn more bullets.");
@@ -22,9 +23,24 @@ void BulletManager::spawnBullet(Bullet const& bullet)
   m_bullets[m_activeCount++] = bullet;
 }
 
-void BulletManager::spawnBullet(float x, float y, float vx, float vy, std::uint16_t type, std::uint16_t color)
+void BulletManager::spawnBulletV(float x, float y, float vx, float vy, std::uint16_t type, std::uint16_t color) noexcept
 {
   spawnBullet({ x, y, vx, vy, type, color });
+}
+
+void BulletManager::spawnBulletA(float x,
+                                 float y,
+                                 float angle,
+                                 float v,
+                                 std::uint16_t type,
+                                 std::uint16_t color) noexcept
+{
+  spawnBullet({ .x = x,
+                .y = y,
+                .vx = v * Core::Math::cos(angle),
+                .vy = v * Core::Math::sin(angle),
+                .type = type,
+                .color = color });
 }
 
 void BulletManager::update(float screenWidth, float screenHeight)

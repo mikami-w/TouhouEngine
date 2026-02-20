@@ -19,8 +19,11 @@ public:
   void init(std::size_t capacity); // 初始化内存池大小
 
   // 创造一颗新子弹
-  void spawnBullet(Bullet const& bullet);
-  void spawnBullet(float x, float y, float vx, float vy, std::uint16_t type, std::uint16_t color);
+  void spawnBullet(Bullet const& bullet) noexcept;
+  // 使用矢量速度创造子弹
+  void spawnBulletV(float x, float y, float vx, float vy, std::uint16_t type, std::uint16_t color) noexcept;
+  // 使用角(弧度制)和速率创造子弹
+  void spawnBulletA(float x, float y, float angle, float v, std::uint16_t type, std::uint16_t color) noexcept;
 
   // 每帧调用, 更新位置并回收出界子弹
   void update(float screenWidth, float screenHeight);

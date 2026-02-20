@@ -26,21 +26,21 @@ alignas(64) inline static std::array<float, 1024> const sinTable = []() {
   return table;
 }();
 
-__forceinline inline float sin(float radians) noexcept
+__forceinline float sin(float radians) noexcept
 {
   // 将角度转换为 [0, 1024) 范围内的索引
   int index = static_cast<int>(radians * RadToIndex) & 1023; // 1023 = 0x3FF = 0b11'1111'1111, 处理负数和大于 2pi 的情况
   return sinTable[index];
 }
 
-__forceinline inline float cos(float radians) noexcept
+__forceinline float cos(float radians) noexcept
 {
   // cos(x) = sin(x + pi/2)。在 1024 长度的表中，pi/2 偏移量是 256
   int index = (static_cast<int>(radians * RadToIndex) + 256) & 1023;
   return sinTable[index];
 }
 
-__forceinline inline float sinLerp(float radians) noexcept
+__forceinline float sinLerp(float radians) noexcept
 {
   float floatIndex = radians * RadToIndex;
   int i = static_cast<int>(std::floor(floatIndex));
@@ -53,7 +53,7 @@ __forceinline inline float sinLerp(float radians) noexcept
   return sinTable[idx1] + fraction * (sinTable[idx2] - sinTable[idx1]);
 }
 
-__forceinline inline float cosLerp(float radians) noexcept
+__forceinline float cosLerp(float radians) noexcept
 {
   return sinLerp(radians + std::numbers::pi_v<float> / 2.0f);
 }

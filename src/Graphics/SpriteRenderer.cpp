@@ -21,6 +21,7 @@ void SpriteRenderer::initialize()
   initShaders();
   initBuffers();
   initStates();
+  m_instances.reserve(m_maxInstances);
 
   LOG_INFO("SpriteRenderer Pipeline initialized successfully.");
 }
@@ -31,35 +32,46 @@ void SpriteRenderer::updateProjectionMatrix(float windowWidth, float windowHeigh
   DirectX::XMMATRIX orthoMatrix =
     DirectX::XMMatrixOrthographicOffCenterLH(0.0f, windowWidth, windowHeight, 0.0f, 0.0f, 1.0f);
   // CPU(C++) 默认是行主序 (Row-Major) 矩阵, GPU(HLSL) 默认是列主序 (Column-Major) 矩阵
-  // 在传给 GPU 之前，必须进行一次转置
+  // 在传给 GPU 之前, 必须进行一次转置
   DirectX::XMStoreFloat4x4(&m_projectionMatrix, DirectX::XMMatrixTranspose(orthoMatrix));
 }
 
 void SpriteRenderer::begin()
 {
+  // 开始新的一帧, 清空实例数据和当前绑定的贴图
+  m_instances.clear();
+  m_currentTexture = nullptr;
+
   auto context = m_device->getContext();
 
   // 将状态绑定到渲染管线
   m_inputLayout->Bind(context);
   m_vertexShader->Bind(context);
   m_pixelShader->Bind(context);
-
   // 绑定光栅化状态
   context->RSSetState(m_rasterizerState.Get());
-
   // 把采样器绑定到像素着色器 (PS) 的第 0 号槽位
   context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-
-  // 绑定混合状态, nullptr 表示不使用混合因子常量，0xffffffff 表示所有多重采样遮罩全开
+  // 绑定混合状态, nullptr 表示不使用混合因子常量, 0xffffffff 表示所有多重采样遮罩全开
   context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
-
   // 拓扑结构: 告诉 GPU 传来的是一系列三角形
   context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  // 将投影矩阵更新到常量缓冲区
+  D3D11_MAPPED_SUBRESOURCE mappedResource;
+  HRESULT hr = context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+  LOG_DX11_CHECK(hr, "Failed to map Constant Buffer!");
+  TransformCBuffer* dataPtr = static_cast<TransformCBuffer*>(mappedResource.pData);
+  dataPtr->projection = m_projectionMatrix;
+  context->Unmap(m_constantBuffer.Get(), 0);
+
+  // 绑定常量缓冲区到顶点着色器
+  context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 }
 
 void SpriteRenderer::end()
 {
-  // 目前暂不需要清理状态, 留作扩展口
+  flush();
 }
 
 void SpriteRenderer::drawSprite(Texture* texture, float x, float y, float angle, float scaleX, float scaleY)
@@ -68,42 +80,20 @@ void SpriteRenderer::drawSprite(Texture* texture, float x, float y, float angle,
     return;
   }
 
-  auto context = m_device->getContext();
+  // 核心批处理逻辑: 如果我们换了一张贴图, 或者 m_instances 已经塞满了, 立刻把现有的货物发走 (flush)，然后再装新货
+  if (texture != m_currentTexture || m_instances.size() >= m_maxInstances) {
+    flush();
+    m_currentTexture = texture;
+  }
 
-  // 绑定贴图到像素着色器 (PS) 的第 0 号插槽
-  ID3D11ShaderResourceView* srvs[]{ texture->getSRV() };
-  context->PSSetShaderResources(0, 1, srvs);
+  // 悄悄把数据塞进 vector, 先不呼叫 GPU
+  InstanceData data;
+  data.position = { x, y };
+  data.scale = { scaleX, scaleY };
+  data.rotation = angle;
+  data.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 默认白色 (原图颜色)
 
-  // 计算当前方块的世界矩阵(缩放->旋转->平移)
-  DirectX::XMMATRIX scaling = DirectX::XMMatrixScaling(scaleX, scaleY, 1.0f);
-  DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationZ(angle);
-  DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(x, y, 0.0f);
-  DirectX::XMMATRIX worldMatrix = scaling * rotation * translation;
-
-  // 将数据推送到显存 (Map / Unmap 模式)
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  // Map: 锁定一块区域让 CPU 写入
-  HRESULT hr = m_device->getContext()->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-  LOG_DX11_CHECK(hr, "Failed to map Constant Buffer!");
-
-  TransformCBuffer* dataPtr = (TransformCBuffer*)mappedResource.pData;
-  dataPtr->projection = m_projectionMatrix;
-  DirectX::XMStoreFloat4x4(&dataPtr->world, DirectX::XMMatrixTranspose(worldMatrix));
-  context->Unmap(m_constantBuffer.Get(), 0); // 解除锁定
-
-  // 将常量缓冲区绑定到管线的 VS 的 0 号槽位
-  context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
-
-  // 绑定顶点缓冲区
-  UINT stride = sizeof(Vertex); // 告诉显卡每个顶点跨度多大
-  UINT offset = 0;
-  context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-  // 绑定索引缓冲区
-  context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-  // Draw Call
-  context->DrawIndexed(6, 0, 0);
+  m_instances.push_back(data);
 }
 
 void SpriteRenderer::initShaders()
@@ -123,10 +113,22 @@ void SpriteRenderer::initShaders()
 
   // 创建输入布局 (Input Layout) (必须与 hlsl 中的布局完全匹配)
   std::vector<D3D11_INPUT_ELEMENT_DESC> layoutDesc = {
-    // 语义名 | 语义索引 | 数据格式 (RGB32F 即 3个float) | 输入槽 | 字节偏移 | 数据类型 | 实例步进
+    // 槽位 0：顶点缓冲区数据 (PER_VERTEX_DATA)
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    // 纹理坐标紧跟在 position 后面，position 占了 12 字节，所以偏移量为 12 (D3D11_APPEND_ALIGNED_ELEMENT 自动计算)
-    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+
+    // 槽位 1：实例缓冲区数据 (PER_INSTANCE_DATA)
+    // 最后的 `1`, 它代表 InstanceDataStepRate, 意思是“画完 1 个完整的实例（包含 4 个顶点）后, 才前进读取下一个实例数据”
+    { "INST_POS", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+    { "INST_SCALE", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+    { "INST_ROT", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+    { "INST_COLOR",
+      0,
+      DXGI_FORMAT_R32G32B32A32_FLOAT,
+      1,
+      D3D11_APPEND_ALIGNED_ELEMENT,
+      D3D11_INPUT_PER_INSTANCE_DATA,
+      1 }
   };
   m_inputLayout = std::make_unique<InputLayout>(m_device->getDevice(), layoutDesc, vsBytecode.Get());
 }
@@ -135,7 +137,7 @@ void SpriteRenderer::initBuffers()
 {
   // 创建顶点缓冲区
   // 目前没有使用矩阵变换, 直接使用 GPU 的归一化设备坐标 (NDC)
-  // NDC 坐标系中，屏幕中心是 (0,0)，左下角是 (-1,-1)，右上角是 (1,1)
+  // NDC 坐标系中, 屏幕中心是 (0,0), 左下角是 (-1,-1), 右上角是 (1,1)
   Vertex vertices[] = {
     Vertex(-0.5f, -0.5f, 0.0f, 0.0f, 0.0f), // 左下角 (索引 0)
     Vertex(-0.5f, 0.5f, 0.0f, 0.0f, 1.0f),  // 左上角 (索引 1)
@@ -144,7 +146,7 @@ void SpriteRenderer::initBuffers()
   };
 
   D3D11_BUFFER_DESC vbd{};
-  vbd.Usage = D3D11_USAGE_IMMUTABLE; // 声明这些顶点永远不会变，显卡会把它放在最快的内存区
+  vbd.Usage = D3D11_USAGE_IMMUTABLE; // 声明这些顶点永远不会变, 显卡会把它放在最快的内存区
   vbd.ByteWidth = sizeof(vertices);
   vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 告诉显卡这个是顶点缓冲区
   vbd.CPUAccessFlags = 0;
@@ -183,6 +185,16 @@ void SpriteRenderer::initBuffers()
 
   hr = m_device->getDevice()->CreateBuffer(&cbd, nullptr, m_constantBuffer.GetAddressOf());
   LOG_DX11_CHECK(hr, "Failed to create constant buffer.");
+
+  // 创建实例缓冲区 (Instance Buffer)
+  D3D11_BUFFER_DESC instDesc{};
+  instDesc.Usage = D3D11_USAGE_DYNAMIC; // 动态, CPU 每一帧都要把几千颗子弹塞进去
+  instDesc.ByteWidth = sizeof(InstanceData) * m_maxInstances;
+  instDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;    // 实例缓冲区本质上也是一种顶点缓冲区
+  instDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // 允许 CPU 写入
+
+  hr = m_device->getDevice()->CreateBuffer(&instDesc, nullptr, m_instanceBuffer.GetAddressOf());
+  LOG_DX11_CHECK(hr, "Failed to create Instance Buffer.");
 }
 
 void SpriteRenderer::initStates()
@@ -231,6 +243,42 @@ void SpriteRenderer::initStates()
 
   hr = m_device->getDevice()->CreateBlendState(&blendDesc, m_blendState.GetAddressOf());
   LOG_DX11_CHECK(hr, "Failed to create Blend State.");
+}
+
+void SpriteRenderer::flush()
+{
+  if (m_instances.empty() || !m_currentTexture) {
+    return;
+  }
+
+  auto context = m_device->getContext();
+
+  // 把 vector 里的数据通过内存拷贝到 Instance Buffer (显存)
+  D3D11_MAPPED_SUBRESOURCE mappedResource;
+  HRESULT hr = context->Map(m_instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+  LOG_DX11_CHECK(hr, "Failed to map Instance Buffer!");
+  memcpy(mappedResource.pData, m_instances.data(), sizeof(InstanceData) * m_instances.size());
+
+  context->Unmap(m_instanceBuffer.Get(), 0);
+
+  // 同时绑定两个顶点缓冲区
+  ID3D11Buffer* vbs[] = { m_vertexBuffer.Get(), m_instanceBuffer.Get() };
+  UINT strides[] = { sizeof(Vertex), sizeof(InstanceData) };
+  UINT offsets[] = { 0, 0 };
+  // 槽位0是几何顶点, 槽位1是实例数据. (在 InputLayout 中与 GPU 约定)
+  context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+
+  context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+  // 绑定当前批次的贴图
+  ID3D11ShaderResourceView* srvs[] = { m_currentTexture->getSRV() };
+  context->PSSetShaderResources(0, 1, srvs);
+
+  // 参数: 每个实例的索引数(6), 实例总数, 起始索引(0), 顶点起始偏移(0), 实例起始偏移(0)
+  context->DrawIndexedInstanced(6, static_cast<UINT>(m_instances.size()), 0, 0, 0);
+
+  // 货物送达, 清空车厢, 准备装下一批货物
+  m_instances.clear();
 }
 
 } // namespace Graphics

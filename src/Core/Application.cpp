@@ -97,15 +97,12 @@ void Application::update()
 
   if (m_frameCount & 1) {
     // 每两帧生成一颗子弹, 以测试 BulletManager 的性能
-    float angle = static_cast<float>(m_timer->getTotalTime());
-    int speed = 10;
-    Game::Bullet bullet{ .x = static_cast<float>(m_config.width / 2),
-                         .y = static_cast<float>(m_config.height / 2),
-                         .vx = speed * Math::cos(angle),
-                         .vy = speed * Math::sin(angle),
-                         .type = 0,
-                         .color = 0 };
-    m_bulletManager.spawnBullet(bullet);
+    m_bulletManager.spawnBulletA(static_cast<float>(m_config.width / 2),
+                                 static_cast<float>(m_config.height / 2),
+                                 static_cast<float>(m_timer->getTotalTime()),
+                                 10,
+                                 0,
+                                 0);
   }
   // 更新子弹位置, 并回收出界子弹
   m_bulletManager.update(static_cast<float>(m_config.width), static_cast<float>(m_config.height));

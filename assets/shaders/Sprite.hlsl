@@ -2,7 +2,6 @@
 cbuffer TransformBuffer : register(b0)
 {
   matrix projection;  // 投影矩阵, 负责把屏幕像素坐标投影到 NDC 坐标
-  matrix world;       // 世界矩阵, 负责通过缩放, 旋转, 平移等仿射变换将局部坐标系映射到世界坐标系
 };
 
 // 纹理资源和采样器状态
@@ -12,8 +11,15 @@ SamplerState spriteSampler : register(s0); // 采样器状态绑定到 s0
 // CPU 传给顶点着色器的数据结构
 struct VSInput
 {
+  // 每顶点数据, 来自 Vertex Buffer (槽位0)
   float3 position : POSITION; // 顶点位置 (x, y, z)
   float2 texCoord : TEXCOORD; // 纹理坐标 (u, v)
+
+  // 每实例数据, 来自 Instance Buffer (槽位1)
+  float2 instPos    : INST_POS;   // 子弹位置 (x, y)
+  float2 instScale  : INST_SCALE; // 子弹宽高 (scaleX, scaleY)
+  float instRot     : INST_ROT;   // 子弹旋转弧度
+  float4 instColor  : INST_COLOR; // 子弹颜色 (r, g, b, a)
 };
 
 // 顶点着色器传给像素着色器的数据结构
@@ -21,33 +27,47 @@ struct PSInput
 {
   float4 position : SV_POSITION; // 最终的屏幕空间位置 (x, y, z, w)
   float2 texCoord : TEXCOORD; // 纹理坐标 (u, v) (会被插值)
+  float4 color : COLOR; // 顶点颜色 (r, g, b, a)
 };
 
 // 顶点着色器 (Vertex Shader)
 PSInput VSMain(VSInput input)
 {
   PSInput output;
-
-  // 将 3D 坐标扩充为 4D 齐次坐标 (w=1.0)
-  float4 pos = float4(input.position,1.0f);
-
-  // 先应用世界变换，再应用投影变换
-  pos = mul(pos, world);
-  pos = mul(pos, projection);
-
-  output.position = pos;
+    
+  // 获取基础的正方形顶点坐标 (-0.5 到 0.5)
+  float2 pos = input.position.xy;
+  
+  // 缩放
+  pos.x *= input.instScale.x;
+  pos.y *= input.instScale.y;
+  
+  // 旋转 (在 GPU 上计算正弦余弦极其廉价)
+  float s, c;
+  sincos(input.instRot, s, c);
+  float2 rotPos;
+  rotPos.x = pos.x * c - pos.y * s;
+  rotPos.y = pos.x * s + pos.y * c;
+  
+  // 平移, 到屏幕上的实际位置
+  pos = rotPos + input.instPos;
+  
+  // 应用投影矩阵, 转换为 NDC 坐标
+  float4 finalPos = float4(pos, 0.0f, 1.0f);
+  output.position = mul(finalPos, projection);
+  
+  // 直接传递纹理坐标和实例颜色
   output.texCoord = input.texCoord;
-
+  output.color = input.instColor;
+  
   return output;
 }
 
 // 像素着色器 (Pixel Shader)
 float4 PSMain(PSInput input) : SV_TARGET
 {
-  float4 color = spriteTexture.Sample(spriteSampler, input.texCoord);
-  if (color.a < 0.1f) {
-    // 如果 alpha 值小于 0.1 (透明), 则丢弃该像素, 用于节省性能
-    discard;
-  }
-  return color;
+  float4 texColor = spriteTexture.Sample(spriteSampler, input.texCoord);
+    
+  // 贴图颜色与实例颜色相乘, 实现变色/透明度控制
+  return texColor * input.color; 
 }

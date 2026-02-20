@@ -23,24 +23,34 @@ void BulletManager::spawnBullet(Bullet const& bullet) noexcept
   m_bullets[m_activeCount++] = bullet;
 }
 
-void BulletManager::spawnBulletV(float x, float y, float vx, float vy, std::uint16_t type, std::uint16_t color) noexcept
+void BulletManager::spawnBulletV(float x,
+                                 float y,
+                                 float vx,
+                                 float vy,
+                                 float accelx,
+                                 float accely,
+                                 std::uint16_t type,
+                                 std::uint16_t color) noexcept
 {
-  spawnBullet({ x, y, vx, vy, type, color });
+  float angle = std::atan2(vx, vy);           // 与 +y 的夹角
+  float speed = std::sqrt(vx * vx + vy * vy); // 速率
+  // TODO: 计算角加速度和切向加速度
+  // spawnBullet({ });
+  LOG_DEBUG("WARNING! BulletManager::spawnBulletV is called. This may cause extra overhead due to atan2 and sqrt "
+            "calculations.");
 }
 
 void BulletManager::spawnBulletA(float x,
                                  float y,
                                  float angle,
-                                 float v,
+                                 float angVel,
+                                 float angAccel,
+                                 float speed,
+                                 float tanAccel,
                                  std::uint16_t type,
                                  std::uint16_t color) noexcept
 {
-  spawnBullet({ .x = x,
-                .y = y,
-                .vx = v * Core::Math::cos(angle),
-                .vy = v * Core::Math::sin(angle),
-                .type = type,
-                .color = color });
+  spawnBullet({ x, y, angle, angVel, angAccel, speed, tanAccel, type, color });
 }
 
 void BulletManager::update(float screenWidth, float screenHeight)
@@ -53,11 +63,8 @@ void BulletManager::update(float screenWidth, float screenHeight)
 
   for (int i = 0; i < m_activeCount;) {
     Bullet& b = m_bullets[i];
-
     // 更新位置
-    b.x += b.vx;
-    b.y += b.vy;
-
+    b.updatePosition();
     // 边界检查
     if (b.x < leftBound || b.x > rightBound || b.y < topBound || b.y > bottomBound) {
       // Swap and Pop 回收子弹: 用最后一颗子弹覆盖当前子弹, 然后减少有效子弹计数

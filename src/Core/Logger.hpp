@@ -17,7 +17,7 @@ public:
     // ERROR_FUCKWINDOWS,  // windows.h 里定义了 ERROR 宏 =)
     ERROR_,
     FATAL_,
-    DX11_FATAL_
+    DX11_ERROR_
   };
 
   template <auto VLogLevel>
@@ -29,7 +29,7 @@ public:
   static void checkDX11(long hr, std::string_view message)
   {
     if (hr < 0) { // FAILED(hr)
-      log<LogLevel::DX11_FATAL_>(std::format("{} (HRESULT: 0x{:X})", message, hr));
+      log<LogLevel::DX11_ERROR_>(std::format("{} (HRESULT: 0x{:X})", message, hr));
       throw std::runtime_error(std::string(message) + " (HRESULT: " + std::to_string(hr) + ")");
     }
   }

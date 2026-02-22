@@ -1,9 +1,16 @@
 #pragma once
 
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
+#include <format>
+#include <fstream>
 #include <iostream>
+#include <mutex>
+#include <string>
 #include <string_view>
+#include <thread>
+#include <utility>
 
 namespace Core {
 class Logger
@@ -20,21 +27,85 @@ public:
     DX11_ERROR_
   };
 
-  template <auto VLogLevel>
-  static void log(std::string_view message, std::ostream& os = std::cout)
+public:
+  static Logger& getInstance() noexcept
   {
-    os << std::format("{} [{}] {}\n", getCurrentTime(), getEnumName<VLogLevel>(), message);
+    static Logger instance;
+    return instance;
   }
 
-  static void checkDX11(long hr, std::string_view message)
+  void init(char const* logFileName)
+  {
+#if !defined(_DEBUG)
+    std::ofstream(logFileName, std::ios::trunc);
+#endif
+    m_logFrontBuffer.reserve(128); // 预分配前端缓冲区, 减少动态扩容次数
+    m_logFileName = logFileName;
+    m_workerThread = std::thread(&Logger::flushLoop, this);
+  }
+
+  template <auto VLogLevel>
+  void log(std::string_view message)
+  {
+    std::string logMsg = std::format("{} [{}] {}\n", getCurrentTime(), getEnumName<VLogLevel>(), message);
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      m_logFrontBuffer.emplace_back(std::move(logMsg));
+    }
+    m_cv.notify_one();
+  }
+
+  void checkDX11(long hr, std::string_view message)
   {
     if (hr < 0) { // FAILED(hr)
       log<LogLevel::DX11_ERROR_>(std::format("{} (HRESULT: 0x{:X})", message, hr));
-      throw std::runtime_error(std::string(message) + " (HRESULT: " + std::to_string(hr) + ")");
+      throw std::runtime_error(std::format("{} (HRESULT: 0x{:08X})", message, static_cast<std::uint32_t>(hr)));
     }
   }
 
 private:
+  Logger() = default;
+
+  ~Logger()
+  {
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      m_exitFlag = true;
+    }
+    m_cv.notify_all();
+    if (m_workerThread.joinable()) {
+      m_workerThread.join();
+    }
+  }
+
+  void flushLoop()
+  {
+#if defined(_DEBUG)
+    std::ostream& logStream = std::cout;
+#else
+    std::ofstream logStream(m_logFileName, std::ios::app);
+#endif
+
+    std::vector<std::string> backBuffer;
+    backBuffer.reserve(128); // 这里也要预分配, 不然 swap 后就没了
+
+    for (;;) {
+      {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [this] { return !m_logFrontBuffer.empty() || m_exitFlag; });
+        if (m_logFrontBuffer.empty() && m_exitFlag) {
+          break;
+        }
+        backBuffer.swap(m_logFrontBuffer);
+      }
+      for (auto const& logEntry : backBuffer) {
+        logStream << logEntry;
+      }
+      logStream.flush();
+      backBuffer.clear();
+    }
+  }
+
   template <auto V>
   static constexpr std::string_view getEnumName() noexcept
   {
@@ -68,12 +139,25 @@ private:
                        now_tm.tm_sec,
                        ms.count());
   }
+
+private:
+  std::string m_logFileName;
+  std::vector<std::string> m_logFrontBuffer;
+  std::mutex m_mutex;
+  std::condition_variable m_cv;
+  std::thread m_workerThread;
+  bool m_exitFlag = false;
 };
 } // namespace Core
 
-#define LOG_DEBUG(msg) ::Core::Logger::log<Core::Logger::LogLevel::DEBUG_>(msg)
-#define LOG_INFO(msg) ::Core::Logger::log<Core::Logger::LogLevel::INFO_>(msg)
-#define LOG_WARN(msg) ::Core::Logger::log<Core::Logger::LogLevel::WARN_>(msg)
-#define LOG_ERROR(msg) ::Core::Logger::log<Core::Logger::LogLevel::ERROR_>(msg)
-#define LOG_FATAL(msg) ::Core::Logger::log<Core::Logger::LogLevel::FATAL_>(msg)
-#define LOG_DX11_CHECK(hr, msg) ::Core::Logger::checkDX11(hr, msg)
+#define LOG_INFO(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::INFO_>(msg)
+#define LOG_WARN(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::WARN_>(msg)
+#define LOG_ERROR(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::ERROR_>(msg)
+#define LOG_FATAL(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::FATAL_>(msg)
+#define LOG_DX11_CHECK(hr, msg) ::Core::Logger::getInstance().checkDX11(hr, msg)
+
+#if defined(_DEBUG)
+#define LOG_DEBUG(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::DEBUG_>(msg)
+#else
+#define LOG_DEBUG(msg)
+#endif

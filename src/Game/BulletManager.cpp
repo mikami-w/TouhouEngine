@@ -2,7 +2,7 @@
 #include "Core/Logger.hpp"
 #include "Core/MathUtils.hpp"
 
-#include <format>
+#include <string>
 
 namespace Game {
 
@@ -10,7 +10,7 @@ void BulletManager::init(std::size_t capacity)
 {
   m_bullets.resize(capacity);
   m_activeCount = 0;
-  LOG_INFO(std::format("BulletManager initialized with capacity: {}", capacity));
+  LOG_INFO("BulletManager initialized with capacity: " + std::to_string(capacity));
 }
 
 void BulletManager::spawnBullet(Bullet const& bullet) noexcept

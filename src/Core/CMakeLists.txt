@@ -9,6 +9,7 @@ set(CORE_SOURCES
         Application.cpp
         Application.hpp
         MathUtils.hpp
+        XSRandom.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

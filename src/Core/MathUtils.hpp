@@ -62,6 +62,14 @@ __forceinline float sinIndexMapping(int fullIndex) noexcept
 
   return std::bit_cast<float>(valInt);
 }
+
+// atan 的多项式近似, 适用于 z = y/x 在 [0, 1] 范围内的情况
+__forceinline constexpr float atanApprox_01(float z) noexcept
+{
+  // 霍纳法则: ((c3 * z^2 + c2) * z^2 + c1) * z^3 + z
+  float const z2 = z * z;
+  return (((-0.0464964749f * z2 + 0.15931422f) * z2 - 0.327622764f) * z2 * z) + z;
+}
 } // namespace Core::Math::details
 
 // 简单函数/有硬件优化的函数
@@ -127,6 +135,29 @@ __forceinline float cos(float radians) noexcept
   // cos(x) = sin(x + pi/2). 在 2048 长度的表中，pi/2 偏移量是 512
   int index = static_cast<int>(std::floor(radians * details::RadToIndex + 512.0f)) & 2047;
   return details::sinIndexMapping(index);
+}
+
+__forceinline float atan2(float y, float x)
+{
+  float ax = std::abs(x);
+  float ay = std::abs(y);
+
+  // 分母加上 1e-7f, 避免 0/0 导致的 NaN
+  float minVal = std::min(ax, ay);
+  float maxVal = std::max(ax, ay) + 1e-7f;
+
+  float angle = details::atanApprox_01(minVal / maxVal);
+
+  // if (ay > ax) { result = PI/2 - result; }
+  float swap = static_cast<float>(ay > ax);
+  angle = swap * _PI_2_f + (1.0f - 2.0f * swap) * angle;
+
+  // if (dx < 0.0f) { result = PI - result; }
+  float xNeg = static_cast<float>(x < 0.0f);
+  angle = xNeg * _PI_f + (1.0f - 2.0f * xNeg) * angle;
+
+  // if (dy < 0.0f) { result = -result; }
+  return std::copysign(angle, y);
 }
 
 inline void initMathUtils()

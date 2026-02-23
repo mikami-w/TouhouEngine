@@ -1,6 +1,10 @@
 .idea
 .vscode
 
+*.log
+
+ResourceUnused
+
 build
 cmake-build*
 

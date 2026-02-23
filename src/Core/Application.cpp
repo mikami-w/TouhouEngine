@@ -9,6 +9,7 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <mmsystem.h>
 
 #include <memory>
 #include <numbers>
@@ -24,6 +25,7 @@ Application::Application(Config const& config)
   // 初始化窗口
   Window::Config wndConfig{ .title = m_config.title, .width = m_config.width, .height = m_config.height };
   m_window = std::make_unique<Window>(wndConfig);
+  LOG_INFO("Display Resolution: " + std::to_string(m_config.width) + "x" + std::to_string(m_config.height));
 
   // 初始化图形设备 DirectX 11 (传入窗口句柄)
   m_gfx =
@@ -43,11 +45,14 @@ Application::Application(Config const& config)
 
   m_bulletManager.init(20000); // 初始化弹幕池, 最多支持 20000 发子弹
 
+  timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
+
   LOG_INFO("Application initialized successfully.");
 }
 
 Application::~Application()
 {
+  timeEndPeriod(1); // 恢复默认计时精度
   LOG_INFO("Application shutting down.");
 }
 
@@ -95,7 +100,6 @@ void Application::update()
 {
   ++m_frameCount;
 
-  constexpr float PI_2_3 = std::numbers::pi_v<float> * 2 / 3.0f; // 120度的弧度值
   static constexpr float spawnAngAccel = 0.001f;
   static float spawnAngle = 0.0f;
   static float spawnAngVel = 0.0f;
@@ -107,9 +111,9 @@ void Application::update()
 
   // 每帧生成 3 颗子弹
   m_bulletManager.spawnBullet(b);
-  b.angle += PI_2_3;
+  b.angle += Math::PI2_3_f;
   m_bulletManager.spawnBullet(b);
-  b.angle += PI_2_3;
+  b.angle += Math::PI2_3_f;
   m_bulletManager.spawnBullet(b);
 
   // 更新子弹位置, 并回收出界子弹

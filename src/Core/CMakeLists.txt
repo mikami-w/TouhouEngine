@@ -21,4 +21,5 @@ target_include_directories(Core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Core
         PUBLIC ProjectPCH
         PUBLIC d3d11
+        PUBLIC winmm
 )

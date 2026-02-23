@@ -15,24 +15,24 @@
 #include <numbers>
 
 namespace Core::Math {
-constexpr float _2PI = std::numbers::pi_v<float> * 2.0f;            // 360 degree
-constexpr float _PI_f = std::numbers::pi_v<float>;                  // 180 degree
-constexpr float _5PI_6_f = std::numbers::pi_v<float> * 5.0f / 6.0f; // 150 degree
-constexpr float _2PI_3_f = std::numbers::pi_v<float> * 2.0f / 3.0f; // 120 degree
-constexpr float _PI_2_f = std::numbers::pi_v<float> / 2.0f;         // 90 degree
-constexpr float _PI_3_f = std::numbers::pi_v<float> / 3.0f;         // 60 degree
-constexpr float _PI_4_f = std::numbers::pi_v<float> / 4.0f;         // 45 degree
-constexpr float _PI_6_f = std::numbers::pi_v<float> / 6.0f;         // 30 degree
-constexpr float _PI_8_f = std::numbers::pi_v<float> / 8.0f;         // 22.5 degree
-constexpr float _PI_12_f = std::numbers::pi_v<float> / 12.0f;       // 15 degree
+constexpr float PI2_f = std::numbers::pi_v<float> * 2.0f;          // 360 degree
+constexpr float PI_f = std::numbers::pi_v<float>;                  // 180 degree
+constexpr float PI5_6_f = std::numbers::pi_v<float> * 5.0f / 6.0f; // 150 degree
+constexpr float PI2_3_f = std::numbers::pi_v<float> * 2.0f / 3.0f; // 120 degree
+constexpr float PI_2_f = std::numbers::pi_v<float> / 2.0f;         // 90 degree
+constexpr float PI_3_f = std::numbers::pi_v<float> / 3.0f;         // 60 degree
+constexpr float PI_4_f = std::numbers::pi_v<float> / 4.0f;         // 45 degree
+constexpr float PI_6_f = std::numbers::pi_v<float> / 6.0f;         // 30 degree
+constexpr float PI_8_f = std::numbers::pi_v<float> / 8.0f;         // 22.5 degree
+constexpr float PI_12_f = std::numbers::pi_v<float> / 12.0f;       // 15 degree
 
 namespace details {
-inline constexpr float RadToIndex = 1024.0f / _PI_f;
+inline constexpr float RadToIndex = 1024.0f / PI_f;
 
 // 四分之一圆周的正弦值表, 从 0 到 pi/2, 含 pi/2
 alignas(64) inline static std::array<float, 513> const sinTable = []() {
   std::array<float, 513> table{};
-  constexpr float step = _2PI / 2048.0f; // 步长为 2PI / 2048
+  constexpr float step = PI2_f / 2048.0f; // 步长为 2PI / 2048
   for (int i = 0; i < 513; ++i) {
     table[i] = std::sin(step * i);
   }
@@ -150,11 +150,11 @@ __forceinline float atan2(float y, float x)
 
   // if (ay > ax) { result = PI/2 - result; }
   float swap = static_cast<float>(ay > ax);
-  angle = swap * _PI_2_f + (1.0f - 2.0f * swap) * angle;
+  angle = swap * PI_2_f + (1.0f - 2.0f * swap) * angle;
 
   // if (dx < 0.0f) { result = PI - result; }
   float xNeg = static_cast<float>(x < 0.0f);
-  angle = xNeg * _PI_f + (1.0f - 2.0f * xNeg) * angle;
+  angle = xNeg * PI_f + (1.0f - 2.0f * xNeg) * angle;
 
   // if (dy < 0.0f) { result = -result; }
   return std::copysign(angle, y);

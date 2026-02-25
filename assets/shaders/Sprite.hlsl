@@ -19,6 +19,7 @@ struct VSInput
   float2 instPos    : INST_POS;   // 子弹位置 (x, y)
   float2 instScale  : INST_SCALE; // 子弹宽高 (scaleX, scaleY)
   float instRot     : INST_ROT;   // 子弹旋转弧度
+  float4 instUvRect : INST_UV_RECT; // 纹理坐标矩形 (u0, v0, u1, v1) 用于从纹理图集中采样
   float4 instColor  : INST_COLOR; // 子弹颜色 (r, g, b, a)
 };
 
@@ -57,7 +58,7 @@ PSInput VSMain(VSInput input)
   output.position = mul(finalPos, projection);
   
   // 直接传递纹理坐标和实例颜色
-  output.texCoord = input.texCoord;
+  output.texCoord = input.texCoord * input.instUvRect.zw + input.instUvRect.xy; // 从纹理图集中采样: 基础坐标(0~1) * 抠图宽高 + 抠图左上角起点
   output.color = input.instColor;
   
   return output;

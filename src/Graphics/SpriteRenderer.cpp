@@ -74,7 +74,14 @@ void SpriteRenderer::end()
   flush();
 }
 
-void SpriteRenderer::drawSprite(Texture* texture, float x, float y, float angle, float scaleX, float scaleY)
+void SpriteRenderer::drawSprite(Texture* texture,
+                                float x,
+                                float y,
+                                float angle,
+                                float scaleX,
+                                float scaleY,
+                                DirectX::XMFLOAT4 uvRect,
+                                DirectX::XMFLOAT4 color)
 {
   if (!texture) {
     return;
@@ -87,13 +94,53 @@ void SpriteRenderer::drawSprite(Texture* texture, float x, float y, float angle,
   }
 
   // 悄悄把数据塞进 vector, 先不呼叫 GPU
-  InstanceData data;
-  data.position = { x, y };
-  data.scale = { scaleX, scaleY };
-  data.rotation = angle;
-  data.color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 默认白色 (原图颜色)
+  InstanceData data{
+    .position = { x, y }, .scale = { scaleX, scaleY }, .rotation = angle, .uvRect = uvRect, .color = color
+  };
 
   m_instances.push_back(data);
+}
+void SpriteRenderer::drawText(Texture* texture,
+                              std::string const& text,
+                              float startX,
+                              float startY,
+                              float scale,
+                              DirectX::XMFLOAT4 color)
+{
+  if (!texture) {
+    return;
+  }
+
+  // 图集参数
+  constexpr int cols = 16;              // 字符贴图是 16 列的网格
+  constexpr float uvStep = 1.0f / cols; // 每个字符占 UV 空间的大小
+
+  // 渲染参数
+  float const quadSize = 32.0f * scale; // 每个字符的屏幕大小 (像素)
+  float const advanceX = 16.0f * scale; // 每个字符的水平间距 (像素)
+
+  float cursorX = startX;
+
+  for (char c : text) {
+    // 只处理标准可见 ASCII 字符 (空格 32 到 ~ 126)
+    if (c >= ' ' && c <= '~') {
+      int index = c - ' '; // 计算字符在图集中的索引
+      int row = index / cols;
+      int col = index % cols;
+
+      DirectX::XMFLOAT4 uvRect = {
+        col * uvStep, // u 起点
+        row * uvStep, // v 起点
+        uvStep,       // u 宽度
+        uvStep        // v 高度
+      };
+
+      drawSprite(texture, cursorX, startY, 0.0f, quadSize, quadSize, uvRect, color);
+    }
+
+    // 光标右移
+    cursorX += advanceX;
+  }
 }
 
 void SpriteRenderer::initShaders()
@@ -113,15 +160,22 @@ void SpriteRenderer::initShaders()
 
   // 创建输入布局 (Input Layout) (必须与 hlsl 中的布局完全匹配)
   std::vector<D3D11_INPUT_ELEMENT_DESC> layoutDesc = {
-    // 槽位 0：顶点缓冲区数据 (PER_VERTEX_DATA)
+    // 槽位 0: 顶点缓冲区数据 (PER_VERTEX_DATA)
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 
-    // 槽位 1：实例缓冲区数据 (PER_INSTANCE_DATA)
+    // 槽位 1: 实例缓冲区数据 (PER_INSTANCE_DATA)
     // 最后的 `1`, 它代表 InstanceDataStepRate, 意思是“画完 1 个完整的实例（包含 4 个顶点）后, 才前进读取下一个实例数据”
     { "INST_POS", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
     { "INST_SCALE", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
     { "INST_ROT", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+    { "INST_UV_RECT",
+      0,
+      DXGI_FORMAT_R32G32B32A32_FLOAT,
+      1,
+      D3D11_APPEND_ALIGNED_ELEMENT,
+      D3D11_INPUT_PER_INSTANCE_DATA,
+      1 },
     { "INST_COLOR",
       0,
       DXGI_FORMAT_R32G32B32A32_FLOAT,

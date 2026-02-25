@@ -33,7 +33,21 @@ public:
   void end();   // 结束渲染
 
   // x, y 屏幕像素坐标, angle 弧度, scaleX/Y 宽高像素大小
-  void drawSprite(Texture* texture, float x, float y, float angle, float scaleX, float scaleY);
+  void drawSprite(Texture* texture,
+                  float x,
+                  float y,
+                  float angle,
+                  float scaleX,
+                  float scaleY,
+                  DirectX::XMFLOAT4 uvRect = { 0.0f, 0.0f, 1.0f, 1.0f }, // (u, v, width, height), 默认使用全图
+                  DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f }   // RGBA 颜色, 默认白色滤镜 (原图颜色)
+  );
+  void drawText(Texture* texture,
+                std::string const& text,
+                float startX,
+                float startY,
+                float scale = 1.0f,
+                DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
 private:
   void initShaders();

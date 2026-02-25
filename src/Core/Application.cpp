@@ -43,6 +43,10 @@ Application::Application(Config const& config)
   auto texPath = std::filesystem::current_path() / "assets/textures/yukari.png";
   m_textureYukari = std::make_unique<Graphics::Texture>(m_gfx.get(), texPath.string());
 
+  // 加载图集
+  auto fontPath = std::filesystem::current_path() / "assets/textures/ui/fonts/ascii.png";
+  m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
+
   m_bulletManager.init(20000); // 初始化弹幕池, 最多支持 20000 发子弹
 
   timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
@@ -60,6 +64,7 @@ void Application::run()
 {
   double accumulatedTime = 0.0; // 累积的未处理时间
   // 主循环
+  // 处理窗口消息, 如果窗口被关闭则停止循环
   while (m_isRunning) {
     if (!m_window->processMessages()) {
       m_isRunning = false;
@@ -67,10 +72,11 @@ void Application::run()
     }
     // TODO: 添加其他退出逻辑
 
-    // 处理窗口消息, 如果窗口被关闭则停止循环
     // 获取当前经过的时间, 并累积到 accumulatedTime 中
     m_timer->tick();
-    accumulatedTime += m_timer->getDeltaTime();
+
+    double dt = m_timer->getDeltaTime();
+    accumulatedTime += dt;
 
     // 逻辑更新 (Update)
     // 只有累积的时间经过了一帧的时间 (1/60s), 才执行一次更新循环
@@ -83,6 +89,15 @@ void Application::run()
       update();
       accumulatedTime -= SECONDS_PER_FRAME; // 减去一帧的时间
       isUpdated = true;
+    }
+
+    // 计算 fps
+    m_fpsTimeAccumulator += dt;
+    if (m_fpsTimeAccumulator >= 0.5f) {
+      m_fps = static_cast<float>(1.0 * m_fpsFrameCount / m_fpsTimeAccumulator);
+      m_fpsFrameCount = 0;
+      m_fpsTimeAccumulator -= 0.5;
+      LOG_DEBUG(std::format("Current FPS: {}", m_fps));
     }
 
     // 渲染提交 (Render)
@@ -99,6 +114,7 @@ void Application::run()
 void Application::update()
 {
   ++m_frameCount;
+  ++m_fpsFrameCount;
 
   static constexpr float spawnAngAccel = 0.001f;
   static float spawnAngle = 0.0f;
@@ -135,7 +151,7 @@ void Application::render()
     m_spriteRenderer->drawSprite(m_textureYukari.get(),
                                  b.x,
                                  b.y,
-                                 b.angle - std::numbers::pi_v<float> / 2, // 子弹总是面向运动方向
+                                 b.angle - Math::PI_2_f, // 子弹总是面向运动方向
                                  30.0f,
                                  30.0f // 子弹大小
     );
@@ -148,6 +164,10 @@ void Application::render()
   float height = m_textureYukari->getHeight() >> 2;
 
   m_spriteRenderer->drawSprite(m_textureYukari.get(), m_config.width / 2, m_config.height / 2, angle, -width, height);
+
+  // 绘制 fps
+  std::string fpsStr = std::format("{:.1f}FPS", m_fps);
+  m_spriteRenderer->drawText(m_fontTexture.get(), fpsStr, m_config.width - 150.0f, m_config.height - 40.0f, 1.0f);
 
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕

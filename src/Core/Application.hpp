@@ -55,6 +55,12 @@ private:
   std::unique_ptr<Core::Timer> m_timer;
   std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
 
+  // FPS 计算
+  std::unique_ptr<Graphics::Texture> m_fontTexture; // 字符图集贴图
+  float m_fps = 0.0f;
+  int m_fpsFrameCount = 0;
+  double m_fpsTimeAccumulator = 0.0;
+
   // for test
   std::unique_ptr<Graphics::Texture> m_textureYukari;
   Game::BulletManager m_bulletManager;

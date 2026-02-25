@@ -32,10 +32,8 @@ void BulletManager::spawnBulletV(float x,
                                  std::uint16_t type,
                                  std::uint16_t color) noexcept
 {
-  float angle = std::atan2(vx, vy);           // 与 +y 的夹角
-  float speed = std::sqrt(vx * vx + vy * vy); // 速率
   // TODO: 计算角加速度和切向加速度
-  // spawnBullet({ });
+  (void)x, (void)y, (void)vx, (void)vy, (void)accelx, (void)accely, (void)type, (void)color;
   LOG_DEBUG("WARNING! BulletManager::spawnBulletV is called. This may cause extra overhead due to atan2 and sqrt "
             "calculations.");
 }

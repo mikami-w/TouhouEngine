@@ -8,8 +8,8 @@
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <mmsystem.h>
+#include <windows.h>
 
 #include <memory>
 #include <numbers>
@@ -47,7 +47,7 @@ Application::Application(Config const& config)
   auto fontPath = std::filesystem::current_path() / "assets/textures/ui/fonts/ascii.png";
   m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
 
-  m_bulletManager.init(20000); // 初始化弹幕池, 最多支持 20000 发子弹
+  m_bulletManager.init(50000); // 初始化弹幕池, 最多支持 50000 发子弹
 
   timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
 
@@ -77,35 +77,40 @@ void Application::run()
 
     double dt = m_timer->getDeltaTime();
     accumulatedTime += dt;
+    m_fpsTimeAccumulator += dt;
 
     // 逻辑更新 (Update)
-    // 只有累积的时间经过了一帧的时间 (1/60s), 才执行一次更新循环
-    // 若由于卡顿等原因 accumulatedTime 积累了 2 帧或更多,
-    // 则连续执行多次更新循环而不渲染, 以追赶上当前时间
-    bool isUpdated = false;
-    int updateCount = 0; // 统计连续更新的次数, 用于限制最大连续更新次数, 模拟处理落机制
-    while (accumulatedTime >= SECONDS_PER_FRAME &&
-           updateCount++ < 2) { // 最多连续更新 2 次, 即通过处理落机制最多降低到 30fps
+    if (accumulatedTime >= SECONDS_PER_FRAME) {
       update();
+      render();
+
+      // 更新一次即一帧
+      ++m_frameCount;
+      ++m_fpsFrameCount;
+
       accumulatedTime -= SECONDS_PER_FRAME; // 减去一帧的时间
-      isUpdated = true;
+
+      // 模拟处理落机制, 强制每次循环最多更新一帧
+      // 机制解释:
+      // 如果 accumulatedTime 大于 1 帧就直接丢弃
+      // 当 update/render 耗时大于 1 帧, accumulatedTime 会保持在 1 帧而不会继续积累
+      // 当 update/render 耗时小于 1 帧后 (度过了性能瓶颈或模拟的强制处理落), accumulatedTime 就会被快速消耗到小于 1 帧,
+      // 然后正常积累
+      if (accumulatedTime > SECONDS_PER_FRAME) {
+        accumulatedTime = SECONDS_PER_FRAME;
+      }
     }
 
     // 计算 fps
-    m_fpsTimeAccumulator += dt;
     if (m_fpsTimeAccumulator >= 0.5f) {
       m_fps = static_cast<float>(1.0 * m_fpsFrameCount / m_fpsTimeAccumulator);
       m_fpsFrameCount = 0;
       m_fpsTimeAccumulator -= 0.5;
       LOG_DEBUG(std::format("Current FPS: {}", m_fps));
+      LOG_DEBUG(std::format("Current Active Bullets: {}", m_bulletManager.getActiveCount()));
     }
 
-    // 渲染提交 (Render)
-    // 只有逻辑更新过 (画面有变化) 才重新渲染
-    if (isUpdated) {
-      render();
-    } else if (!m_config.vsync) {
-      // 如果没有更新, 就等一会儿再渲染, 避免 CPU 占用过高
+    if (!m_config.vsync) {
       Sleep(1);
     }
   }
@@ -113,24 +118,27 @@ void Application::run()
 
 void Application::update()
 {
-  ++m_frameCount;
-  ++m_fpsFrameCount;
+  {
+    // 生成子弹
+    static constexpr float spawnAngAccel = 0.001f;
+    static float spawnAngle = 0.0f;
+    static float spawnAngVel = 0.0f;
+    spawnAngVel += spawnAngAccel; // 逐渐加速旋转
+    spawnAngle += spawnAngVel;
+    Game::Bullet b{ .x = m_config.width / 2.0f, .y = m_config.height / 2.0f };
+    b.angle = spawnAngle;
+    b.speed = 8.0f;
 
-  static constexpr float spawnAngAccel = 0.001f;
-  static float spawnAngle = 0.0f;
-  static float spawnAngVel = 0.0f;
-  spawnAngVel += spawnAngAccel; // 逐渐加速旋转
-  spawnAngle += spawnAngVel;
-  Game::Bullet b{ .x = m_config.width / 2.0f, .y = m_config.height / 2.0f };
-  b.angle = spawnAngle;
-  b.speed = 8.0f;
-
-  // 每帧生成 3 颗子弹
-  m_bulletManager.spawnBullet(b);
-  b.angle += Math::PI2_3_f;
-  m_bulletManager.spawnBullet(b);
-  b.angle += Math::PI2_3_f;
-  m_bulletManager.spawnBullet(b);
+    // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
+    for (int i = 0; i < 1; i++) {
+      // 每帧生成 3 颗子弹
+      m_bulletManager.spawnBullet(b);
+      b.angle += Math::PI2_3_f;
+      m_bulletManager.spawnBullet(b);
+      b.angle += Math::PI2_3_f;
+      m_bulletManager.spawnBullet(b);
+    }
+  }
 
   // 更新子弹位置, 并回收出界子弹
   m_bulletManager.update(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
@@ -171,7 +179,5 @@ void Application::render()
 
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕
-
-  // LOG_DEBUG(std::format("Active Bullets: {}", m_bulletManager.getActiveCount()));
 }
 } // namespace Core

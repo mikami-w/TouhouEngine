@@ -102,12 +102,12 @@ void Application::run()
     }
 
     // 计算 fps
-    if (m_fpsTimeAccumulator >= 0.5f) {
+    if (m_fpsTimeAccumulator >= 0.5) {
       m_fps = static_cast<float>(1.0 * m_fpsFrameCount / m_fpsTimeAccumulator);
       m_fpsFrameCount = 0;
       m_fpsTimeAccumulator -= 0.5;
-      LOG_DEBUG(std::format("Current FPS: {}", m_fps));
-      LOG_DEBUG(std::format("Current Active Bullets: {}", m_bulletManager.getActiveCount()));
+      // LOG_DEBUG(std::format("Current FPS: {}", m_fps));
+      // LOG_DEBUG(std::format("Current Active Bullets: {}", m_bulletManager.getActiveCount()));
     }
 
     if (!m_config.vsync) {
@@ -174,7 +174,7 @@ void Application::render()
   m_spriteRenderer->drawSprite(m_textureYukari.get(), m_config.width / 2, m_config.height / 2, angle, -width, height);
 
   // 绘制 fps
-  std::string fpsStr = std::format("{:.1f}FPS", m_fps);
+  std::string fpsStr = std::format("{:.2f}FPS", m_fps);
   m_spriteRenderer->drawText(m_fontTexture.get(), fpsStr, m_config.width - 150.0f, m_config.height - 40.0f, 1.0f);
 
   m_spriteRenderer->end(); // 结束渲染管线状态

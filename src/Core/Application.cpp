@@ -146,6 +146,8 @@ void Application::update()
 
 void Application::render()
 {
+  // 为减少 drawcall 次数, 使用同一 texture 文件的绘制应相邻, 以便 SpriteRenderer 的批处理逻辑能把它们合并成一个 drawcall
+
   m_gfx->clear(0.3f, 0.0f, 0.3f, 1.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态
   float time = static_cast<float>(m_timer->getTotalTime());

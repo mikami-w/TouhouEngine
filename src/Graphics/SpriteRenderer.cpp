@@ -100,6 +100,7 @@ void SpriteRenderer::drawSprite(Texture* texture,
 
   m_instances.push_back(data);
 }
+
 void SpriteRenderer::drawText(Texture* texture,
                               std::string const& text,
                               float startX,

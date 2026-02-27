@@ -48,7 +48,7 @@ Application::Application(Config const& config)
   m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
 
   m_bulletManager.init(
-    m_spriteRenderer->getMaxInstances()); // 初始化弹幕池, 最多支持的子弹数取决于 SpriteRenderer 的实例缓冲区大小
+    m_spriteRenderer->getMaxInstances() - 5000); // 初始化弹幕池, 最多支持的子弹数取决于 SpriteRenderer 的实例缓冲区大小
 
   timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
 

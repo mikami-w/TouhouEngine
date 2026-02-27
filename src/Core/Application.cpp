@@ -63,56 +63,58 @@ Application::~Application()
 
 void Application::run()
 {
-  double accumulatedTime = 0.0; // 累积的未处理时间
+  m_timer->tick();
+  double nextFrameTime = m_timer->getTotalTime() + SECONDS_PER_FRAME; // 计划下一帧的时间点
+
   // 主循环
-  // 处理窗口消息, 如果窗口被关闭则停止循环
   while (m_isRunning) {
+    // 处理窗口消息, 如果窗口被关闭则停止循环
     if (!m_window->processMessages()) {
       m_isRunning = false;
       break;
     }
     // TODO: 添加其他退出逻辑
 
-    // 获取当前经过的时间, 并累积到 accumulatedTime 中
-    m_timer->tick();
+    update();
+    render();
+    ++m_frameCount;
+    ++m_fpsFrameCount;
 
-    double dt = m_timer->getDeltaTime();
-    accumulatedTime += dt;
-    m_fpsTimeAccumulator += dt;
+    // Hybrid Spin-Wait (混合自旋等待)
+    for (;;) {
+      m_timer->tick();
+      double currentTime = m_timer->getTotalTime();       // 当前时间
+      double timeRemaining = nextFrameTime - currentTime; // 距离下一帧的剩余时间
 
-    // 逻辑更新 (Update)
-    if (accumulatedTime >= SECONDS_PER_FRAME) {
-      update();
-      render();
+      // 时间到了, 准备进入下一帧
+      if (timeRemaining <= 0.0) {
+        if (-timeRemaining <= SECONDS_PER_FRAME) {
+          // 正常情况: 当前时间只超过下一帧的计划时间不到 1 帧, 就直接进入下一帧
+          nextFrameTime += SECONDS_PER_FRAME;
+        } else {
+          // 处理落: 当前时间已经超过下一帧的计划时间大于 1 帧, 重置时间锚点, 放弃追赶
+          nextFrameTime = currentTime + SECONDS_PER_FRAME;
+        }
 
-      // 更新一次即一帧
-      ++m_frameCount;
-      ++m_fpsFrameCount;
+        break; // 打破自旋, 进入主循环下一个 iteration
+      }
 
-      accumulatedTime -= SECONDS_PER_FRAME; // 减去一帧的时间
-
-      // 模拟处理落机制, 强制每次循环最多更新一帧
-      // 机制解释:
-      // 如果 accumulatedTime 大于 1 帧就直接丢弃
-      // 当 update/render 耗时大于 1 帧, accumulatedTime 会保持在 1 帧而不会继续积累
-      // 当 update/render 耗时小于 1 帧后 (度过了性能瓶颈或模拟的强制处理落), accumulatedTime 就会被快速消耗到小于 1 帧,
-      // 然后正常积累
-      if (accumulatedTime > SECONDS_PER_FRAME) {
-        accumulatedTime = SECONDS_PER_FRAME;
+      if (!m_config.vsync) {
+        if (timeRemaining > 0.002) {
+          // 如果离下一帧还有 2ms 以上，让出 CPU; 否则就不 Sleep, 直接死循环等待以提高精度
+          Sleep(1);
+        }
+      } else {
+        // 如果开了 Vsync, Present 内部会阻塞, 不需要我们自己控制时间
+        break;
       }
     }
 
-    // 计算 fps
-    if (m_fpsTimeAccumulator >= 0.5) {
-      m_fps = static_cast<float>(1.0 * m_fpsFrameCount / m_fpsTimeAccumulator);
+    if (m_timer->getTotalTime() - m_fpsTimeAccumulator >= 1.0) {
+      m_fps = static_cast<float>(m_fpsFrameCount / (m_timer->getTotalTime() - m_fpsTimeAccumulator));
       m_fpsFrameCount = 0;
-      m_fpsTimeAccumulator -= 0.5;
-      // LOG_DEBUG(std::format("Current FPS: {}", m_fps));
-      // LOG_DEBUG(std::format("Current Active Bullets: {}", m_bulletManager.getActiveCount()));
-    }
-
-    if (!m_config.vsync) {
-      Sleep(1);
+      m_fpsTimeAccumulator = m_timer->getTotalTime();
+      LOG_DEBUG(std::format("Current FPS: {:.2f}", m_fps));
     }
   }
 }
@@ -172,10 +174,15 @@ void Application::render()
   // float x = std::sin(time) * 200.0f + 400.0f;
   // float y = std::sin(std::sin(time) * 3.14159f) * 200.0f + 300.0f;
   float angle = Math::sin(time) * 0.2f;
-  float width = m_textureYukari->getWidth() >> 2;
-  float height = m_textureYukari->getHeight() >> 2;
+  float width = static_cast<float>(m_textureYukari->getWidth() >> 2);
+  float height = static_cast<float>(m_textureYukari->getHeight() >> 2);
 
-  m_spriteRenderer->drawSprite(m_textureYukari.get(), m_config.width / 2, m_config.height / 2, angle, -width, height);
+  m_spriteRenderer->drawSprite(m_textureYukari.get(),
+                               static_cast<float>(m_config.width / 2),
+                               static_cast<float>(m_config.height / 2),
+                               angle,
+                               -width,
+                               height);
 
   // 绘制 fps
   std::string fpsStr = std::format("{:.2f}FPS", m_fps);

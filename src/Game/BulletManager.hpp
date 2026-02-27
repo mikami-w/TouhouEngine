@@ -52,6 +52,6 @@ public:
 
 private:
   std::vector<Bullet> m_bullets;
-  std::size_t m_activeCount;
+  std::size_t m_activeCount = 0;
 };
 } // namespace Game

@@ -24,6 +24,8 @@ public:
   SpriteRenderer(SpriteRenderer const&) = delete;
   SpriteRenderer& operator=(SpriteRenderer const&) = delete;
 
+  std::size_t getMaxInstances() const noexcept { return m_maxInstances; }
+
   void initialize(); // 初始化管线状态 (加载 Shaders)
 
   // 动态更新投影矩阵 (当窗口大小改变时调用)
@@ -79,6 +81,6 @@ private:
   // 批处理数据
   std::vector<InstanceData> m_instances; // 存储当前帧所有待渲染的 Sprite 实例数据
   Texture* m_currentTexture = nullptr;   // 当前批次使用的贴图
-  std::size_t m_maxInstances = 20000;    // 最大 Sprite 实例数量
+  std::size_t m_maxInstances = 50000;    // 最大 Sprite 实例数量
 };
 } // namespace Graphics

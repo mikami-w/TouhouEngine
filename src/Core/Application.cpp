@@ -47,7 +47,8 @@ Application::Application(Config const& config)
   auto fontPath = std::filesystem::current_path() / "assets/textures/ui/fonts/ascii.png";
   m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
 
-  m_bulletManager.init(50000); // 初始化弹幕池, 最多支持 50000 发子弹
+  m_bulletManager.init(
+    m_spriteRenderer->getMaxInstances()); // 初始化弹幕池, 最多支持的子弹数取决于 SpriteRenderer 的实例缓冲区大小
 
   timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
 
@@ -146,7 +147,8 @@ void Application::update()
 
 void Application::render()
 {
-  // 为减少 drawcall 次数, 使用同一 texture 文件的绘制应相邻, 以便 SpriteRenderer 的批处理逻辑能把它们合并成一个 drawcall
+  // 为减少 drawcall 次数, 使用同一 texture 文件的绘制应相邻, 以便 SpriteRenderer 的批处理逻辑能把它们合并成一个
+  // drawcall
 
   m_gfx->clear(0.3f, 0.0f, 0.3f, 1.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态

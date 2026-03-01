@@ -37,7 +37,6 @@ Application::Application(Config const& config)
   // 初始化渲染管线
   m_spriteRenderer = std::make_unique<Graphics::SpriteRenderer>(m_gfx.get());
   m_spriteRenderer->initialize();
-  m_spriteRenderer->updateProjectionMatrix(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
 
   // 加载贴图
   auto texPath = std::filesystem::current_path() / "assets/textures/yukari.png";
@@ -47,8 +46,8 @@ Application::Application(Config const& config)
   auto fontPath = std::filesystem::current_path() / "assets/textures/ui/fonts/ascii.png";
   m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
 
-  m_bulletManager.init(
-    m_spriteRenderer->getMaxInstances() - 5000); // 初始化弹幕池, 最多支持的子弹数取决于 SpriteRenderer 的实例缓冲区大小
+  m_bulletManager.init(m_spriteRenderer->getMaxInstances() -
+                       5000); // 初始化弹幕池, 最多支持的子弹数取决于 SpriteRenderer 的实例缓冲区大小
 
   timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
 
@@ -154,7 +153,8 @@ void Application::render()
 
   m_gfx->clear(0.3f, 0.0f, 0.3f, 1.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态
-  float time = static_cast<float>(m_timer->getTotalTime());
+
+  m_spriteRenderer->setView(0, 0, static_cast<float>(m_config.width/2), static_cast<float>(m_config.height/2));
 
   Game::Bullet const* bullets = m_bulletManager.getActiveBullets();
   size_t count = m_bulletManager.getActiveCount();
@@ -171,8 +171,7 @@ void Application::render()
     );
   }
 
-  // float x = std::sin(time) * 200.0f + 400.0f;
-  // float y = std::sin(std::sin(time) * 3.14159f) * 200.0f + 300.0f;
+  float time = static_cast<float>(m_timer->getTotalTime());
   float angle = Math::sin(time) * 0.2f;
   float width = static_cast<float>(m_textureYukari->getWidth() >> 2);
   float height = static_cast<float>(m_textureYukari->getHeight() >> 2);

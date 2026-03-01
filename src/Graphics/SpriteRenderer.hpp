@@ -28,8 +28,7 @@ public:
 
   void initialize(); // 初始化管线状态 (加载 Shaders)
 
-  // 动态更新投影矩阵 (当窗口大小改变时调用)
-  void updateProjectionMatrix(float windowWidth, float windowHeight);
+  void setView(float screenX, float screenY, float screenW, float screenH, float logicalW = -1.0f, float logicalH = -1.0f);
 
   void begin(); // 开始渲染当前帧的 Sprites
   void end();   // 结束渲染

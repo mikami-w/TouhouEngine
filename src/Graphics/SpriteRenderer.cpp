@@ -26,14 +26,36 @@ void SpriteRenderer::initialize()
   LOG_INFO("SpriteRenderer Pipeline initialized successfully.");
 }
 
-void SpriteRenderer::updateProjectionMatrix(float windowWidth, float windowHeight)
+void SpriteRenderer::setView(float screenX, float screenY, float screenW, float screenH, float logicalW, float logicalH)
 {
-  // 预计算 2D 正交矩阵投影
-  DirectX::XMMATRIX orthoMatrix =
-    DirectX::XMMatrixOrthographicOffCenterLH(0.0f, windowWidth, windowHeight, 0.0f, 0.0f, 1.0f);
-  // CPU(C++) 默认是行主序 (Row-Major) 矩阵, GPU(HLSL) 默认是列主序 (Column-Major) 矩阵
-  // 在传给 GPU 之前, 必须进行一次转置
+  flush(); // 切换视口前先把当前积累的实例发走, 避免被错误地渲染到新的视口里
+
+  auto context = m_device->getContext();
+
+  // 设置新的视口
+  D3D11_VIEWPORT vp{};
+  vp.TopLeftX = screenX;
+  vp.TopLeftY = screenY;
+  vp.Width = screenW;
+  vp.Height = screenH;
+  vp.MinDepth = 0.0f;
+  vp.MaxDepth = 1.0f;
+  context->RSSetViewports(1, &vp);
+
+  // 内部逻辑坐标系
+  float lw = (logicalW < 0.0f) ? screenW : logicalW;
+  float lh = (logicalH < 0.0f) ? screenH : logicalH;
+
+  DirectX::XMMATRIX orthoMatrix = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, lw, lh, 0.0f, 0.0f, 1.0f);
   DirectX::XMStoreFloat4x4(&m_projectionMatrix, DirectX::XMMatrixTranspose(orthoMatrix));
+
+  // 将新矩阵立刻推送到常量缓冲区, 供接下来的 Shader 使用
+  D3D11_MAPPED_SUBRESOURCE mappedResource;
+  HRESULT hr = context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+  LOG_DX11_CHECK(hr, "Failed to map Constant Buffer.");
+  TransformCBuffer* dataPtr = (TransformCBuffer*)mappedResource.pData;
+  dataPtr->projection = m_projectionMatrix;
+  context->Unmap(m_constantBuffer.Get(), 0);
 }
 
 void SpriteRenderer::begin()
@@ -56,14 +78,6 @@ void SpriteRenderer::begin()
   context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
   // 拓扑结构: 告诉 GPU 传来的是一系列三角形
   context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-  // 将投影矩阵更新到常量缓冲区
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  HRESULT hr = context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-  LOG_DX11_CHECK(hr, "Failed to map Constant Buffer!");
-  TransformCBuffer* dataPtr = static_cast<TransformCBuffer*>(mappedResource.pData);
-  dataPtr->projection = m_projectionMatrix;
-  context->Unmap(m_constantBuffer.Get(), 0);
 
   // 绑定常量缓冲区到顶点着色器
   context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());

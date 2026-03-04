@@ -32,10 +32,12 @@ bool ConfigManager::loadFromJson(std::string const& filePath)
   try {
     auto root = json::parse(file);
 
+#pragma warning(push)
+#pragma warning(disable : 4244) // 关闭隐式类型转换警告
     if (root.contains("Window")) {
       auto const& windowCfg = root["Window"];
 
-      constexpr size_t BUFFER_SIZE = sizeof(m_settings.window.title); // 获取数组总大小 (256)
+      constexpr std::size_t BUFFER_SIZE = sizeof(m_settings.window.title); // 获取数组总大小 (256)
       std::string titleStr = windowCfg["title"].as_string();
       if (titleStr.size() > BUFFER_SIZE - 1) {
         LOG_WARN("Window title in config is too long and will be truncated to fit the buffer.");
@@ -43,8 +45,6 @@ bool ConfigManager::loadFromJson(std::string const& filePath)
       std::strncpy(m_settings.window.title, titleStr.c_str(), BUFFER_SIZE - 1);
       m_settings.window.title[BUFFER_SIZE - 1] = 0;
 
-#pragma warning(push)
-#pragma warning(disable : 4244) // 关闭隐式类型转换警告
       m_settings.window.width = windowCfg["width"].as_int();
       m_settings.window.height = windowCfg["height"].as_int();
       m_settings.window.vsync = windowCfg["vsync"].as_bool();

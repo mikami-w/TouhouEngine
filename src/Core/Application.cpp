@@ -16,20 +16,23 @@
 
 namespace Core {
 
-Application::Application(Config const& config)
+Application::Application(Config::EngineSettings const& config)
   : m_config(config)
   , m_isRunning(true)
 {
   LOG_INFO("Initializing application...");
 
   // 初始化窗口
-  Window::Config wndConfig{ .title = m_config.title, .width = m_config.width, .height = m_config.height };
+  Window::Config wndConfig{ .title = m_config.window.title,
+                            .width = m_config.window.width,
+                            .height = m_config.window.height };
   m_window = std::make_unique<Window>(wndConfig);
-  LOG_INFO("Display Resolution: " + std::to_string(m_config.width) + "x" + std::to_string(m_config.height));
+  LOG_INFO("Display Resolution: " + std::to_string(m_config.window.width) + "x" +
+           std::to_string(m_config.window.height));
 
   // 初始化图形设备 DirectX 11 (传入窗口句柄)
-  m_gfx =
-    std::make_unique<Graphics::DX11Device>(m_window->getHandle(), m_config.width, m_config.height, m_config.vsync);
+  m_gfx = std::make_unique<Graphics::DX11Device>(
+    m_window->getHandle(), m_config.window.width, m_config.window.height, m_config.window.vsync);
 
   // 初始化计时器
   m_timer = std::make_unique<Timer>();
@@ -98,7 +101,7 @@ void Application::run()
         break; // 打破自旋, 进入主循环下一个 iteration
       }
 
-      if (!m_config.vsync) {
+      if (!m_config.window.vsync) {
         if (timeRemaining > 0.002) {
           // 如果离下一帧还有 2ms 以上，让出 CPU; 否则就不 Sleep, 直接死循环等待以提高精度
           Sleep(1);
@@ -127,7 +130,7 @@ void Application::update()
     static float spawnAngVel = 0.0f;
     spawnAngVel += spawnAngAccel; // 逐渐加速旋转
     spawnAngle += spawnAngVel;
-    Game::Bullet b{ .x = m_config.width / 2.0f, .y = m_config.height / 2.0f };
+    Game::Bullet b{ .x = m_config.window.width / 2.0f, .y = m_config.window.height / 2.0f };
     b.angle = spawnAngle;
     b.speed = 8.0f;
 
@@ -143,7 +146,7 @@ void Application::update()
   }
 
   // 更新子弹位置, 并回收出界子弹
-  m_bulletManager.update(static_cast<float>(m_config.width), static_cast<float>(m_config.height));
+  m_bulletManager.update(static_cast<float>(m_config.window.width), static_cast<float>(m_config.window.height));
 }
 
 void Application::render()
@@ -154,7 +157,8 @@ void Application::render()
   m_gfx->clear(0.3f, 0.0f, 0.3f, 1.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态
 
-  m_spriteRenderer->setView(0, 0, static_cast<float>(m_config.width/2), static_cast<float>(m_config.height/2));
+  m_spriteRenderer->setView(
+    0, 0, static_cast<float>(m_config.window.width), static_cast<float>(m_config.window.height));
 
   Game::Bullet const* bullets = m_bulletManager.getActiveBullets();
   size_t count = m_bulletManager.getActiveCount();
@@ -177,15 +181,16 @@ void Application::render()
   float height = static_cast<float>(m_textureYukari->getHeight() >> 2);
 
   m_spriteRenderer->drawSprite(m_textureYukari.get(),
-                               static_cast<float>(m_config.width / 2),
-                               static_cast<float>(m_config.height / 2),
+                               static_cast<float>(m_config.window.width / 2),
+                               static_cast<float>(m_config.window.height / 2),
                                angle,
                                -width,
                                height);
 
   // 绘制 fps
   std::string fpsStr = std::format("{:.2f}FPS", m_fps);
-  m_spriteRenderer->drawText(m_fontTexture.get(), fpsStr, m_config.width - 150.0f, m_config.height - 40.0f, 1.0f);
+  m_spriteRenderer->drawText(
+    m_fontTexture.get(), fpsStr, m_config.window.width - 150.0f, m_config.window.height - 40.0f, 1.0f);
 
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕

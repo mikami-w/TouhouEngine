@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/EngineSettings.hpp"
 #include "Game/BulletManager.hpp"
 #include "Graphics/SpriteRenderer.hpp"
 #include "Graphics/Texture.hpp"
@@ -20,16 +21,7 @@ namespace Core {
 class Application
 {
 public:
-  struct Config
-  {
-    std::string title;
-    int width;
-    int height;
-    bool vsync;
-  };
-
-public:
-  explicit Application(Config const& config);
+  explicit Application(Config::EngineSettings const& config);
   ~Application();
 
   // 禁止拷贝和赋值
@@ -47,7 +39,7 @@ private:
   void render(); // 处理渲染提交, 尽可能快, 或被 vsync 限制
 
 private:
-  Config m_config;
+  Config::EngineSettings m_config;
   bool m_isRunning;
 
   std::unique_ptr<Core::Window> m_window;

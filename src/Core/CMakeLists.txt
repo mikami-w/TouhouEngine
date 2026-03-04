@@ -10,6 +10,9 @@ set(CORE_SOURCES
         Application.hpp
         MathUtils.hpp
         XSRandom.hpp
+        EngineSettings.hpp
+        ConfigManager.cpp
+        ConfigManager.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})
@@ -22,4 +25,5 @@ target_link_libraries(Core
         PUBLIC ProjectPCH
         PUBLIC d3d11
         PUBLIC winmm
+        PRIVATE Vendor
 )

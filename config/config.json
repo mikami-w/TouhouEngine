@@ -1,0 +1,20 @@
+{
+  "Window": {
+    "title": "東方弾幕クリエイター ~ Touhou Engine Dev",
+    "width": 1280,
+    "height": 960,
+    "vsync": false,
+    "fullscreen": false
+  },
+  "PlayArea": {
+    "logicalWidth": 384.0,
+    "logicalHeight": 448.0,
+    "offsetX": 64.0,
+    "offsetY": 32.0,
+    "scale": 2.0
+  },
+  "Debug": {
+    "showFPS": true,
+    "showHitbox": false
+  }
+}

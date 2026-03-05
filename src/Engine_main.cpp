@@ -20,9 +20,9 @@ inline ArgFlag getArgs(int argc, char* argv[])
   }
 
   std::vector<std::string_view> args(argv + 1, argv + argc);
-  unsigned int modeFlag = 0;
+  ArgFlag modeFlag = 0;
   for (auto arg : args) {
-    if (arg == "--cook") {
+    if (arg == "--cook-config") {
       modeFlag |= MODE_COOK;
     } else if (arg == "--load-bin-config") {
       modeFlag |= MODE_LOAD_BIN;
@@ -36,7 +36,8 @@ inline ArgFlag getArgs(int argc, char* argv[])
     }
   }
 
-  if (!(modeFlag & MODE_LOAD_JSON || modeFlag & MODE_LOAD_BIN)) {
+  if (!modeFlag) {
+    // 没有任何参数, 默认使用二进制配置
     LOG_INFO("No config loading mode specified. Defaulting to binary config.");
     modeFlag |= MODE_LOAD_BIN;
   }
@@ -45,15 +46,17 @@ inline ArgFlag getArgs(int argc, char* argv[])
 
 inline int handleArgs(ArgFlag modeFlag)
 {
+  int retCode = 0; // 返回值, 0 表示继续执行主程序, 1 表示已处理参数, 无需继续执行主程序
+
+  // 处理无需启动游戏的参数
   if (modeFlag & MODE_HELP) {
     LOG_INFO("TouhouEngine CLI Usage:");
     LOG_INFO("  --load-bin-config or no args : Run game using compiled binary config (config.bin).");
     LOG_INFO("  --load-json-config           : Run game in Dev Mode using raw config.json.");
     LOG_INFO("  --cook-config                : Compile raw configs (JSON) to binary.");
 
-    return 1;
+    return 1; // 若有 help 参数则直接退出
   }
-
   if (modeFlag & MODE_COOK) {
     LOG_INFO("Cooking config from JSON to binary...");
     auto& cfgm = Core::Config::ConfigManager::getInstance();
@@ -66,18 +69,24 @@ inline int handleArgs(ArgFlag modeFlag)
       throw std::runtime_error("Failed to save cooked config to binary.");
     }
     LOG_INFO("Config cooked successfully. Output: config/config.bin");
+    retCode = 1; // 已处理 cook 参数, 若无指定启动参数则直接退出
   }
 
+  // 处理参数冲突
   if (modeFlag & MODE_LOAD_JSON && modeFlag & MODE_LOAD_BIN) {
     LOG_ERROR("Both --load-json-config and --load-bin-config flags are set. Please choose only one.");
     throw std::runtime_error("Conflicting config loading modes specified.");
-  } else if (modeFlag & MODE_LOAD_JSON) {
+  }
+
+  // 处理启动参数
+  if (modeFlag & MODE_LOAD_JSON) {
     LOG_INFO("Running in Dev Mode with JSON config...");
     auto& cfgm = Core::Config::ConfigManager::getInstance();
     if (!cfgm.loadFromJson("config/config.json")) {
       LOG_ERROR("Failed to load config from JSON.");
       throw std::runtime_error("Failed to load config from JSON.");
     }
+    retCode = 0;
   } else if (modeFlag & MODE_LOAD_BIN) {
     LOG_INFO("Running with binary config...");
     auto& cfgm = Core::Config::ConfigManager::getInstance();
@@ -85,10 +94,12 @@ inline int handleArgs(ArgFlag modeFlag)
       LOG_ERROR("Failed to load config from binary.");
       throw std::runtime_error("Failed to load config from binary.");
     }
+    retCode = 0;
   } else {
     LOG_WARN("No valid config loading mode specified. Use '--help' for usage information.");
+    retCode = 1; // 已处理参数, 但没有指定有效的加载模式, 直接退出
   }
-  return 0;
+  return retCode;
 }
 
 inline int initialize(int argc, char* argv[])
@@ -114,7 +125,7 @@ int main(int argc, char* argv[])
 
   try {
     if (initialize(argc, argv) == 1) {
-      return 0; // 已处理 --help 参数, 直接退出
+      return 0; // 已处理参数且无需启动主程序, 直接退出
     }
 
     Core::Application app{ Core::Config::ConfigManager::getInstance().getSettings() };

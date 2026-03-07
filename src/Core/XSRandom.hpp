@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+namespace Core::Math {
 class XSRandom
 {
 public:
@@ -34,3 +35,4 @@ public:
 private:
   std::uint32_t state;
 };
+} // namespace Core::Math

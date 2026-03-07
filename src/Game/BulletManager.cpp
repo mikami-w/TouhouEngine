@@ -1,6 +1,5 @@
 #include "BulletManager.hpp"
 #include "Core/Logger.hpp"
-#include "Core/MathUtils.hpp"
 
 #include <string>
 

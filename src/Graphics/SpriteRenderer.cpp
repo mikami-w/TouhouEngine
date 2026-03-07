@@ -1,6 +1,8 @@
 #include "SpriteRenderer.hpp"
 
 #include "Core/Logger.hpp"
+#include "DX11Device.hpp"
+#include "Texture.hpp"
 #include "Vertex.hpp"
 
 namespace Graphics {

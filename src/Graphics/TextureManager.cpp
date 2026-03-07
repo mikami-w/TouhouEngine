@@ -1,11 +1,17 @@
 #include "TextureManager.hpp"
 #include "Core/Logger.hpp"
+#include "DX11Device.hpp"
+#include "Texture.hpp"
 
 namespace Graphics {
 
 TextureManager::TextureManager(DX11Device* device)
   : m_device(device)
 {
+  if (!m_device || !(m_device->getDevice())) {
+    LOG_ERROR("Null DX11Device passed to TextureManager.");
+    throw std::invalid_argument("DX11Device is null.");
+  }
   m_textures["404"] =
     std::make_unique<Texture>(m_device, (std::filesystem::current_path() / "assets/textures/404.png").string());
   LOG_INFO("Texture Manager initialized with default '404' texture.");
@@ -13,14 +19,6 @@ TextureManager::TextureManager(DX11Device* device)
 
 Texture* TextureManager::loadTexture(std::string const& name, std::string const& filePath)
 {
-  // // 加载贴图
-  // auto texPath = std::filesystem::current_path() / "assets/textures/yukari.png";
-  // m_textureYukari = std::make_unique<Graphics::Texture>(m_gfx.get(), texPath.string());
-  //
-  // // 加载图集
-  // auto fontPath = std::filesystem::current_path() / "assets/textures/ui/fonts/ascii.png";
-  // m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
-
   if (m_textures.contains(name)) {
     LOG_WARN("Texture with name '" + name + "' already exists. Overwriting.");
   }

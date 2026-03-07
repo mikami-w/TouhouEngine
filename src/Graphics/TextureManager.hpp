@@ -1,11 +1,13 @@
 #pragma once
 
-#include "DX11Device.hpp"
-#include "Texture.hpp"
-
 #include <memory>
 #include <string>
 #include <unordered_map>
+
+namespace Graphics {
+class DX11Device;
+class Texture;
+}
 
 namespace Graphics {
 struct SpriteRegion

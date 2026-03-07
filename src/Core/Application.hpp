@@ -45,8 +45,8 @@ private:
   Config::EngineSettings m_config;
   bool m_isRunning;
 
-  std::unique_ptr<Core::Window> m_window;
-  std::unique_ptr<Core::Timer> m_timer;
+  std::unique_ptr<Window> m_window;
+  std::unique_ptr<Timer> m_timer;
   std::unique_ptr<Graphics::DX11Device> m_gfx;
   std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
   std::unique_ptr<Graphics::TextureManager> m_textureManager;

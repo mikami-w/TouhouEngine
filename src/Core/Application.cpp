@@ -3,6 +3,7 @@
 #include "Game/World.hpp"
 #include "Graphics/DX11Device.hpp"
 #include "Graphics/SpriteRenderer.hpp"
+#include "Graphics/Texture.hpp"
 #include "Graphics/TextureManager.hpp"
 #include "Logger.hpp"
 #include "MathUtils.hpp"
@@ -15,7 +16,6 @@
 #include <windows.h>
 
 #include <memory>
-#include <numbers>
 
 namespace Core {
 

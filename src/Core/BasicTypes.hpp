@@ -1,10 +1,6 @@
 #pragma once
 
-namespace DirectX {
-struct XMFLOAT2;
-struct XMFLOAT3;
-struct XMFLOAT4;
-}
+#include <DirectXMath.h>
 
 namespace Core {
 
@@ -13,4 +9,4 @@ using Vector3 = DirectX::XMFLOAT3;
 using Vector4 = DirectX::XMFLOAT4;
 
 using Position = Vector2;
-}
+} // namespace Core

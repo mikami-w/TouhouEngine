@@ -1,12 +1,16 @@
 #pragma once
-#include "DX11Device.hpp"
+
 #include "Shader.hpp"
-#include "Texture.hpp"
 #include "Vertex.hpp"
 
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
+
+namespace Graphics {
+class DX11Device;
+class Texture;
+}
 
 namespace Graphics {
 // 常量缓冲区

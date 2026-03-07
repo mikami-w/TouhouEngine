@@ -7,8 +7,8 @@
     "fullscreen": false
   },
   "PlayArea": {
-    "logicalWidth": 384.0,
-    "logicalHeight": 448.0,
+    "logicalWidth": 770.0,
+    "logicalHeight": 898.0,
     "offsetX": 64.0,
     "offsetY": 32.0,
     "scale": 2.0

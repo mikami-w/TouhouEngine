@@ -1,12 +1,8 @@
 #pragma once
 
 #include "Core/EngineSettings.hpp"
-#include "Game/BulletManager.hpp"
-#include "Graphics/SpriteRenderer.hpp"
-#include "Graphics/Texture.hpp"
 
 #include <memory>
-#include <string>
 
 namespace Core {
 class Window;
@@ -14,7 +10,14 @@ class Timer;
 }
 
 namespace Graphics {
+class Texture;
 class DX11Device;
+class TextureManager;
+class SpriteRenderer;
+}
+
+namespace Game {
+class World;
 }
 
 namespace Core {
@@ -43,19 +46,15 @@ private:
   bool m_isRunning;
 
   std::unique_ptr<Core::Window> m_window;
-  std::unique_ptr<Graphics::DX11Device> m_gfx;
   std::unique_ptr<Core::Timer> m_timer;
+  std::unique_ptr<Graphics::DX11Device> m_gfx;
   std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
+  std::unique_ptr<Graphics::TextureManager> m_textureManager;
+  std::unique_ptr<Game::World> m_world;
 
   // FPS 计算
-  std::unique_ptr<Graphics::Texture> m_fontTexture; // 字符图集贴图
   float m_fps = 0.0f;
   int m_fpsFrameCount = 0;
   double m_fpsTimeAccumulator = 0.0;
-
-  // for test
-  std::unique_ptr<Graphics::Texture> m_textureYukari;
-  Game::BulletManager m_bulletManager;
-  int m_frameCount = 0;
 };
 } // namespace Core

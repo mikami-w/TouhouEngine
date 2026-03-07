@@ -44,6 +44,6 @@ Texture::Texture(DX11Device* device, std::string const& filePath)
   hr = device->getDevice()->CreateShaderResourceView(texture.Get(), nullptr, m_srv.GetAddressOf());
   LOG_DX11_CHECK(hr, "Failed to create Shader Resource View for Texture.");
 
-  LOG_INFO("Texture loaded successfully.");
+  LOG_INFO("Texture loaded successfully: " + filePath);
 }
 } // namespace Graphics

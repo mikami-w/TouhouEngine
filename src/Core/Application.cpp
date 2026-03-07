@@ -1,6 +1,9 @@
 #include "Application.hpp"
+#include "Game/Bullet.hpp"
+#include "Game/World.hpp"
 #include "Graphics/DX11Device.hpp"
 #include "Graphics/SpriteRenderer.hpp"
+#include "Graphics/TextureManager.hpp"
 #include "Logger.hpp"
 #include "MathUtils.hpp"
 #include "Timer.hpp"
@@ -41,16 +44,13 @@ Application::Application(Config::EngineSettings const& config)
   m_spriteRenderer = std::make_unique<Graphics::SpriteRenderer>(m_gfx.get());
   m_spriteRenderer->initialize();
 
-  // 加载贴图
-  auto texPath = std::filesystem::current_path() / "assets/textures/yukari.png";
-  m_textureYukari = std::make_unique<Graphics::Texture>(m_gfx.get(), texPath.string());
+  // 加载纹理资源
+  m_textureManager = std::make_unique<Graphics::TextureManager>(m_gfx.get());
+  m_textureManager->loadTexture("yukari", "assets/textures/yukari.png");
+  m_textureManager->loadTexture("ascii", "assets/textures/ui/fonts/ascii.png");
 
-  // 加载图集
-  auto fontPath = std::filesystem::current_path() / "assets/textures/ui/fonts/ascii.png";
-  m_fontTexture = std::make_unique<Graphics::Texture>(m_gfx.get(), fontPath.string());
-
-  m_bulletManager.init(m_spriteRenderer->getMaxInstances() -
-                       5000); // 初始化弹幕池, 最多支持的子弹数取决于 SpriteRenderer 的实例缓冲区大小
+  // 初始化游戏世界, 并传入纹理管理器 (依赖注入)
+  m_world = std::make_unique<Game::World>(m_textureManager.get());
 
   timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
 
@@ -79,7 +79,6 @@ void Application::run()
 
     update();
     render();
-    ++m_frameCount;
     ++m_fpsFrameCount;
 
     // Hybrid Spin-Wait (混合自旋等待)
@@ -116,37 +115,14 @@ void Application::run()
       m_fps = static_cast<float>(m_fpsFrameCount / (m_timer->getTotalTime() - m_fpsTimeAccumulator));
       m_fpsFrameCount = 0;
       m_fpsTimeAccumulator = m_timer->getTotalTime();
-      LOG_DEBUG(std::format("Current FPS: {:.2f}", m_fps));
+      // LOG_DEBUG(std::format("Current FPS: {:.2f}", m_fps));
     }
   }
 }
 
 void Application::update()
 {
-  {
-    // 生成子弹
-    static constexpr float spawnAngAccel = 0.001f;
-    static float spawnAngle = 0.0f;
-    static float spawnAngVel = 0.0f;
-    spawnAngVel += spawnAngAccel; // 逐渐加速旋转
-    spawnAngle += spawnAngVel;
-    Game::Bullet b{ .x = m_config.window.width / 2.0f, .y = m_config.window.height / 2.0f };
-    b.angle = spawnAngle;
-    b.speed = 8.0f;
-
-    // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
-    for (int i = 0; i < 1; i++) {
-      // 每帧生成 3 颗子弹
-      m_bulletManager.spawnBullet(b);
-      b.angle += Math::PI2_3_f;
-      m_bulletManager.spawnBullet(b);
-      b.angle += Math::PI2_3_f;
-      m_bulletManager.spawnBullet(b);
-    }
-  }
-
-  // 更新子弹位置, 并回收出界子弹
-  m_bulletManager.update(static_cast<float>(m_config.window.width), static_cast<float>(m_config.window.height));
+  m_world->update(m_config.playArea);
 }
 
 void Application::render()
@@ -154,43 +130,35 @@ void Application::render()
   // 为减少 drawcall 次数, 使用同一 texture 文件的绘制应相邻, 以便 SpriteRenderer 的批处理逻辑能把它们合并成一个
   // drawcall
 
-  m_gfx->clear(0.3f, 0.0f, 0.3f, 1.0f); // 清屏(背景)
+  m_gfx->clear(0.0f, 0.0f, 0.0f, 0.0f); // 清屏(背景)
   m_spriteRenderer->begin();            // 开启渲染管线状态
 
+  // 切换视口到游戏区域
+  m_spriteRenderer->setView(m_config.playArea.offsetX,
+                            m_config.playArea.offsetY,
+                            m_config.playArea.logicalWidth,
+                            m_config.playArea.logicalHeight);
+
+  m_world->draw(m_spriteRenderer.get());
+
+  // 下面这段原本是用来让八云紫在屏幕中心小幅摆动, 充当发弹者, 后面由EnemyManager负责
+  Graphics::Texture* yukari = m_textureManager->getTexture("yukari");
+  static long long timecount = 0;
+  float time = static_cast<float>(timecount++);
+  float angle = Math::sin(time / 30.0f) * 0.2f;
+  float width = yukari->getWidth() / 4.0f;
+  float height = yukari->getHeight() / 4.0f;
+  m_spriteRenderer->drawSprite(
+    yukari, { m_config.playArea.logicalWidth / 2, m_config.playArea.logicalHeight / 2 }, angle, { -width, height });
+
+  // 切换视口到全屏, 绘制 fps
   m_spriteRenderer->setView(
     0, 0, static_cast<float>(m_config.window.width), static_cast<float>(m_config.window.height));
-
-  Game::Bullet const* bullets = m_bulletManager.getActiveBullets();
-  size_t count = m_bulletManager.getActiveCount();
-
-  // 暂时复用八云紫的贴图来当做子弹, 缩小到 20x20
-  for (size_t i = 0; i < count; i++) {
-    Game::Bullet const& b = bullets[i];
-    m_spriteRenderer->drawSprite(m_textureYukari.get(),
-                                 b.x,
-                                 b.y,
-                                 b.angle - Math::PI_2_f, // 子弹总是面向运动方向
-                                 30.0f,
-                                 30.0f // 子弹大小
-    );
-  }
-
-  float time = static_cast<float>(m_timer->getTotalTime());
-  float angle = Math::sin(time) * 0.2f;
-  float width = static_cast<float>(m_textureYukari->getWidth() >> 2);
-  float height = static_cast<float>(m_textureYukari->getHeight() >> 2);
-
-  m_spriteRenderer->drawSprite(m_textureYukari.get(),
-                               static_cast<float>(m_config.window.width / 2),
-                               static_cast<float>(m_config.window.height / 2),
-                               angle,
-                               -width,
-                               height);
-
-  // 绘制 fps
   std::string fpsStr = std::format("{:.2f}FPS", m_fps);
-  m_spriteRenderer->drawText(
-    m_fontTexture.get(), fpsStr, m_config.window.width - 150.0f, m_config.window.height - 40.0f, 1.0f);
+  m_spriteRenderer->drawText(m_textureManager->getTexture("ascii"),
+                             fpsStr,
+                             { m_config.window.width - 150.0f, m_config.window.height - 40.0f },
+                             1.0f);
 
   m_spriteRenderer->end(); // 结束渲染管线状态
   m_gfx->present();        // 呈现到屏幕

@@ -8,6 +8,8 @@ set(GRAPHICS_SOURCES
         SpriteRenderer.hpp
         Texture.cpp
         Texture.hpp
+        TextureManager.cpp
+        TextureManager.hpp
 )
 
 add_library(Graphics STATIC ${GRAPHICS_SOURCES})

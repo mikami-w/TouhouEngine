@@ -1,12 +1,12 @@
 #pragma once
 
-#include <DirectXMath.h>
+#include "Core/BasicTypes.hpp"
 
 namespace Graphics {
 struct Vertex
 {
-  DirectX::XMFLOAT3 position; // x, y, x
-  DirectX::XMFLOAT2 texCoord; // u, v
+  Core::Vector3 position; // x, y, x
+  Core::Vector2 texCoord; // u, v
 
   Vertex() = default;
   Vertex(float x, float y, float z, float u, float v)
@@ -18,10 +18,10 @@ struct Vertex
 
 struct InstanceData
 {
-  DirectX::XMFLOAT2 position; // 8 bytes
-  DirectX::XMFLOAT2 scale;    // 8 bytes
-  float rotation;             // 4 bytes
-  DirectX::XMFLOAT4 uvRect;   // 16 bytes, 贴图坐标矩形 (u, v, width, height)
-  DirectX::XMFLOAT4 color;    // 16 bytes, RGBA 颜色, 每个分量范围 [0, 1]
+  Core::Vector2 position; // 8 bytes
+  Core::Vector2 scale;    // 8 bytes
+  float rotation;         // 4 bytes
+  Core::Vector4 uvRect;   // 16 bytes, 贴图坐标矩形 (u, v, width, height)
+  Core::Vector4 color;    // 16 bytes, RGBA 颜色, 每个分量范围 [0, 1]
 };
 } // namespace Graphics

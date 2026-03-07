@@ -89,13 +89,11 @@ void SpriteRenderer::end()
 }
 
 void SpriteRenderer::drawSprite(Texture* texture,
-                                float x,
-                                float y,
+                                Core::Position pos,
                                 float angle,
-                                float scaleX,
-                                float scaleY,
-                                DirectX::XMFLOAT4 uvRect,
-                                DirectX::XMFLOAT4 color)
+                                Core::Vector2 scale,
+                                Core::Vector4 uvRect,
+                                Core::Vector4 color)
 {
   if (!texture) {
     return;
@@ -108,17 +106,14 @@ void SpriteRenderer::drawSprite(Texture* texture,
   }
 
   // 悄悄把数据塞进 vector, 先不呼叫 GPU
-  InstanceData data{
-    .position = { x, y }, .scale = { scaleX, scaleY }, .rotation = angle, .uvRect = uvRect, .color = color
-  };
+  InstanceData data{ .position = pos, .scale = scale, .rotation = angle, .uvRect = uvRect, .color = color };
 
   m_instances.push_back(data);
 }
 
 void SpriteRenderer::drawText(Texture* texture,
                               std::string const& text,
-                              float startX,
-                              float startY,
+                              Core::Vector2 start,
                               float scale,
                               DirectX::XMFLOAT4 color)
 {
@@ -134,7 +129,7 @@ void SpriteRenderer::drawText(Texture* texture,
   float const quadSize = 32.0f * scale; // 每个字符的屏幕大小 (像素)
   float const advanceX = 16.0f * scale; // 每个字符的水平间距 (像素)
 
-  float cursorX = startX;
+  float cursorX = start.x;
 
   for (char c : text) {
     // 只处理标准可见 ASCII 字符 (空格 32 到 ~ 126)
@@ -150,7 +145,7 @@ void SpriteRenderer::drawText(Texture* texture,
         uvStep        // v 高度
       };
 
-      drawSprite(texture, cursorX, startY, 0.0f, quadSize, quadSize, uvRect, color);
+      drawSprite(texture, { cursorX, start.y }, 0.0f, { quadSize, quadSize }, uvRect, color);
     }
 
     // 光标右移

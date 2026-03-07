@@ -13,6 +13,7 @@ set(CORE_SOURCES
         EngineSettings.hpp
         ConfigManager.cpp
         ConfigManager.hpp
+        BasicTypes.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

@@ -48,7 +48,7 @@ void BulletManager::spawnBulletA(float x,
                                  std::uint16_t type,
                                  std::uint16_t color) noexcept
 {
-  spawnBullet({ x, y, angle, angVel, angAccel, speed, tanAccel, type, color });
+  spawnBullet({ { x, y }, angle, angVel, angAccel, speed, tanAccel, type, color });
 }
 
 void BulletManager::update(float screenWidth, float screenHeight)
@@ -64,7 +64,7 @@ void BulletManager::update(float screenWidth, float screenHeight)
     // 更新位置
     b.updatePosition();
     // 边界检查
-    if (b.x < leftBound || b.x > rightBound || b.y < topBound || b.y > bottomBound) {
+    if (b.pos.x < leftBound || b.pos.x > rightBound || b.pos.y < topBound || b.pos.y > bottomBound) {
       // Swap and Pop 回收子弹: 用最后一颗子弹覆盖当前子弹, 然后减少有效子弹计数
       m_bullets[i] = m_bullets[--m_activeCount];
       // 无需 ++i, 因为需要立刻检查被交换过来的子弹是否也需要回收

@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 #include "BulletManager.hpp"
 #include "Core/EngineSettings.hpp"
-
-#include <cstdint>
 
 namespace Graphics {
 class TextureManager;

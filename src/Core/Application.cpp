@@ -1,4 +1,10 @@
 #include "Application.hpp"
+
+#include <memory>
+
+#include <mmsystem.h>
+#include <windows.h>
+
 #include "Game/Bullet.hpp"
 #include "Game/World.hpp"
 #include "Graphics/DX11Device.hpp"
@@ -9,13 +15,6 @@
 #include "MathUtils.hpp"
 #include "Timer.hpp"
 #include "Window.hpp"
-
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <mmsystem.h>
-#include <windows.h>
-
-#include <memory>
 
 namespace Core {
 

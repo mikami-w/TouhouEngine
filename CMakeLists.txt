@@ -24,7 +24,13 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib) # 设置动态库(.s
 # ===== Compiler Options =====
 
 add_compile_options(/W4 /permissive- /Zc:__cplusplus /utf-8)
-add_compile_definitions(UNICODE _UNICODE _CRT_SECURE_NO_WARNINGS)
+add_compile_definitions(
+        UNICODE
+        _UNICODE
+        _CRT_SECURE_NO_WARNINGS
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+)
 
 # ===== Build Targets =====
 

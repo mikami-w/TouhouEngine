@@ -1,4 +1,5 @@
 #include "World.hpp"
+
 #include "Core/Logger.hpp"
 #include "Core/MathUtils.hpp"
 #include "Graphics/SpriteRenderer.hpp"

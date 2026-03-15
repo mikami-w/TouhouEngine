@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Core/EngineSettings.hpp"
-
 #include <memory>
+
+#include "Core/EngineSettings.hpp"
 
 namespace Core {
 class Window;

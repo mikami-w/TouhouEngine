@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 #include "Core/BasicTypes.hpp"
 #include "Core/MathUtils.hpp"
-
-#include <cstdint>
 
 namespace Game {
 struct BulletMetadata

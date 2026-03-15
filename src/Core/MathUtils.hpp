@@ -7,12 +7,12 @@
 #undef max
 #endif
 
-#include "Core/Logger.hpp"
-
 #include <array>
 #include <bit>
 #include <cmath>
 #include <numbers>
+
+#include "Core/Logger.hpp"
 
 namespace Core::Math {
 constexpr float PI2_f = std::numbers::pi_v<float> * 2.0f;          // 360 degree

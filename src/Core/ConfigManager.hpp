@@ -1,9 +1,9 @@
 #pragma once
 
+#include <string>
+
 #include "EngineSettings.hpp"
 #include "Logger.hpp"
-
-#include <string>
 
 namespace Core::Config {
 class ConfigManager

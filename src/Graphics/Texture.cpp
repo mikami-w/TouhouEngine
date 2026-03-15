@@ -1,7 +1,8 @@
 #include "Texture.hpp"
 
+#include <stb/stb_image.h>
+
 #include "Core/Logger.hpp"
-#include "stb/stb_image.h"
 
 namespace Graphics {
 

@@ -1,7 +1,8 @@
 #include "BulletManager.hpp"
-#include "Core/Logger.hpp"
 
 #include <string>
+
+#include "Core/Logger.hpp"
 
 namespace Game {
 

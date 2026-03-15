@@ -1,4 +1,5 @@
 #include "TextureManager.hpp"
+
 #include "Core/Logger.hpp"
 #include "DX11Device.hpp"
 #include "Texture.hpp"

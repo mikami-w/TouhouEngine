@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Game/Bullet.hpp"
-
 #include <cstdint>
 #include <vector>
+
+#include "Game/Bullet.hpp"
 
 namespace Game {
 class BulletManager

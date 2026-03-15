@@ -1,7 +1,8 @@
 #include "Shader.hpp"
-#include "Core/Logger.hpp"
 
 #include <fstream>
+
+#include "Core/Logger.hpp"
 
 namespace Graphics {
 

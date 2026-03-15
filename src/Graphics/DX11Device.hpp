@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Core/Window.hpp"
-
 #include <d3d11.h>
 #include <wrl/client.h>
+
+#include "Core/Window.hpp"
 
 namespace Graphics {
 class DX11Device

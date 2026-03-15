@@ -1,4 +1,5 @@
 #include "DX11Device.hpp"
+
 #include "Core/Logger.hpp"
 
 namespace Graphics {

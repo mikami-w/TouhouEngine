@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Shader.hpp"
-#include "Vertex.hpp"
-
-#include <DirectXMath.h>
 #include <memory>
 #include <vector>
+
+#include <DirectXMath.h>
+
+#include "Shader.hpp"
+#include "Vertex.hpp"
 
 namespace Graphics {
 class DX11Device;

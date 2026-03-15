@@ -1,10 +1,11 @@
 #pragma once
 
-#include "DX11Device.hpp"
-
 #include <memory>
 #include <string>
+
 #include <wrl/client.h>
+
+#include "DX11Device.hpp"
 
 namespace Graphics {
 class Texture

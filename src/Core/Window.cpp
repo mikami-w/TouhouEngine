@@ -1,11 +1,9 @@
 #include "Window.hpp"
 #include "StringUtils.hpp"
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
 #include <stdexcept>
+
+#include <windows.h>
 
 namespace Core {
 Window::Window(Config const& config)

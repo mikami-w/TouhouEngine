@@ -1,12 +1,11 @@
-#include "BulletManager.hpp"
-
 #include <string>
 
 #include "Core/Logger.hpp"
 
 namespace Game {
 
-void BulletManager::init(std::size_t capacity)
+template <typename BulletMotion>
+void BulletManager<BulletMotion>::init(std::size_t capacity)
 {
   m_bulPos.resize(capacity);
   m_bulMotion.resize(capacity);
@@ -16,7 +15,10 @@ void BulletManager::init(std::size_t capacity)
   LOG_INFO("BulletManager initialized with capacity: " + std::to_string(capacity));
 }
 
-void BulletManager::spawnBullet(BulletPosition pos, BulletMotionP const& bulletMotion, BulletMetadata meta) noexcept
+template <typename BulletMotion>
+void BulletManager<BulletMotion>::spawnBullet(BulletPosition pos,
+                                              BulletMotion const& bulletMotion,
+                                              BulletMetadata meta) noexcept
 {
   if (m_bulPos.size() <= m_activeCount) {
     LOG_WARN("BulletManager capacity reached. Cannot spawn more bullets.");
@@ -30,7 +32,8 @@ void BulletManager::spawnBullet(BulletPosition pos, BulletMotionP const& bulletM
   ++m_activeCount;
 }
 
-void BulletManager::update(float screenWidth, float screenHeight)
+template <typename BulletMotion>
+void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) noexcept
 {
   static constexpr float offscreenMargin = 100.0f; // 允许子弹稍微出界一些再回收
   float const leftBound = -offscreenMargin;
@@ -40,8 +43,7 @@ void BulletManager::update(float screenWidth, float screenHeight)
 
   for (int i = 0; i < m_activeCount;) {
     BulletPosition& pos = m_bulPos[i];
-    BulletMotionP& motion = m_bulMotion[i];
-    BulletMetadata& meta = m_bulMeta[i];
+    BulletMotion& motion = m_bulMotion[i];
 
     // 更新位置
     motion.updatePosition(pos);
@@ -58,7 +60,9 @@ void BulletManager::update(float screenWidth, float screenHeight)
     }
   }
 }
-BulletManager::BulletBuffer BulletManager::getActiveBullets() const noexcept
+
+template <typename BulletMotion>
+typename BulletManager<BulletMotion>::BulletBuffer BulletManager<BulletMotion>::getActiveBullets() const noexcept
 {
   return { m_bulPos.data(), m_bulMotion.data(), m_bulMeta.data() };
 }

@@ -17,11 +17,11 @@ struct BulletMetadata
 // BulletMotion in Polar coordinates, 极坐标系中运动的子弹
 struct BulletMotionP
 {
-  float angle = 0;       // 角 (弧度制), 与 +x 方向 (水平向右) 的顺时针夹角
-  float angVel = 0;      // 角速度, 每帧旋转的弧度
-  float angAccel = 0;    // 角加速度, 每帧增加的角速度 (弧度)
-  float speed = 0;       // 速率, 每帧移动的像素数
-  float tanAccel = 0;    // 切向加速度, 每帧增加的速率
+  float angle = 0;    // 角 (弧度制), 与 +x 方向 (水平向右) 的顺时针夹角
+  float angVel = 0;   // 角速度, 每帧旋转的弧度
+  float angAccel = 0; // 角加速度, 每帧增加的角速度 (弧度)
+  float speed = 0;    // 速率, 每帧移动的像素数
+  float tanAccel = 0; // 切向加速度, 每帧增加的速率
 
   __forceinline void updatePosition(BulletPosition& pos) noexcept
   {
@@ -31,6 +31,21 @@ struct BulletMotionP
     angle += angVel;
     pos.x += speed * Core::Math::cos(angle);
     pos.y += speed * Core::Math::sin(angle);
+  }
+};
+
+// BulletMotion in Rectangle coordinates, 笛卡尔坐标系 (直角坐标系) 中运动的子弹
+struct BulletMotionR
+{
+  Core::Vector2 vel{};
+  Core::Vector2 accel{};
+
+  __forceinline void updatePosition(BulletPosition& pos) noexcept
+  {
+    vel.x += accel.x;
+    vel.y += accel.y;
+    pos.x += vel.x;
+    pos.y += vel.y;
   }
 };
 } // namespace Game

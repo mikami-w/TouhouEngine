@@ -5,7 +5,6 @@
 #include <mmsystem.h>
 #include <windows.h>
 
-#include "Game/Bullet.hpp"
 #include "Game/World.hpp"
 #include "Graphics/DX11Device.hpp"
 #include "Graphics/SpriteRenderer.hpp"

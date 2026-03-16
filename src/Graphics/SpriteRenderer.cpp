@@ -108,9 +108,7 @@ void SpriteRenderer::drawSprite(Texture* texture,
   }
 
   // 悄悄把数据塞进 vector, 先不呼叫 GPU
-  InstanceData data{ .position = pos, .scale = scale, .rotation = angle, .uvRect = uvRect, .color = color };
-
-  m_instances.push_back(data);
+  m_instances.emplace_back(pos, scale, angle, uvRect, color);
 }
 
 void SpriteRenderer::drawText(Texture* texture,

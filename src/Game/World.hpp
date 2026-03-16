@@ -20,7 +20,7 @@ public:
   World(World const&) = delete;
   World& operator=(World const&) = delete;
 
-  void init();                                                   // 游戏世界的初始化 (重置关卡)
+  void reset();                                                   // 游戏世界的初始化 (重置关卡)
   void update(Core::Config::PlayAreaSettings& playAreaSettings); // 游戏主循环推演
   void draw(Graphics::SpriteRenderer* renderer);                 // 提交渲染指令, 把画笔递给世界, 让世界自己画自己
 

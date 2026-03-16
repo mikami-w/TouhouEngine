@@ -8,47 +8,26 @@ namespace Game {
 
 void BulletManager::init(std::size_t capacity)
 {
-  m_bullets.resize(capacity);
+  m_bulPos.resize(capacity);
+  m_bulMotion.resize(capacity);
+  m_bulMeta.resize(capacity);
+
   m_activeCount = 0;
   LOG_INFO("BulletManager initialized with capacity: " + std::to_string(capacity));
 }
 
-void BulletManager::spawnBullet(Bullet const& bullet) noexcept
+void BulletManager::spawnBullet(BulletPosition pos, BulletMotionP const& bulletMotion, BulletMetadata meta) noexcept
 {
-  if (m_bullets.size() <= m_activeCount) {
+  if (m_bulPos.size() <= m_activeCount) {
     LOG_WARN("BulletManager capacity reached. Cannot spawn more bullets.");
     return;
   }
 
-  m_bullets[m_activeCount++] = bullet;
-}
+  m_bulPos[m_activeCount] = pos;
+  m_bulMotion[m_activeCount] = bulletMotion;
+  m_bulMeta[m_activeCount] = meta;
 
-void BulletManager::spawnBulletV(float x,
-                                 float y,
-                                 float vx,
-                                 float vy,
-                                 float accelx,
-                                 float accely,
-                                 std::uint16_t type,
-                                 std::uint16_t color) noexcept
-{
-  // TODO: 计算角加速度和切向加速度
-  (void)x, (void)y, (void)vx, (void)vy, (void)accelx, (void)accely, (void)type, (void)color;
-  LOG_DEBUG("WARNING! BulletManager::spawnBulletV is called. This may cause extra overhead due to atan2 and sqrt "
-            "calculations.");
-}
-
-void BulletManager::spawnBulletA(float x,
-                                 float y,
-                                 float angle,
-                                 float angVel,
-                                 float angAccel,
-                                 float speed,
-                                 float tanAccel,
-                                 std::uint16_t type,
-                                 std::uint16_t color) noexcept
-{
-  spawnBullet({ { x, y }, angle, angVel, angAccel, speed, tanAccel, type, color });
+  ++m_activeCount;
 }
 
 void BulletManager::update(float screenWidth, float screenHeight)
@@ -60,22 +39,27 @@ void BulletManager::update(float screenWidth, float screenHeight)
   float const bottomBound = screenHeight + offscreenMargin;
 
   for (int i = 0; i < m_activeCount;) {
-    Bullet& b = m_bullets[i];
+    BulletPosition& pos = m_bulPos[i];
+    BulletMotionP& motion = m_bulMotion[i];
+    BulletMetadata& meta = m_bulMeta[i];
+
     // 更新位置
-    b.updatePosition();
+    motion.updatePosition(pos);
     // 边界检查
-    if (b.pos.x < leftBound || b.pos.x > rightBound || b.pos.y < topBound || b.pos.y > bottomBound) {
+    if (pos.x < leftBound || pos.x > rightBound || pos.y < topBound || pos.y > bottomBound) {
       // Swap and Pop 回收子弹: 用最后一颗子弹覆盖当前子弹, 然后减少有效子弹计数
-      m_bullets[i] = m_bullets[--m_activeCount];
+      --m_activeCount;
+      m_bulPos[i] = m_bulPos[m_activeCount];
+      m_bulMotion[i] = m_bulMotion[m_activeCount];
+      m_bulMeta[i] = m_bulMeta[m_activeCount];
       // 无需 ++i, 因为需要立刻检查被交换过来的子弹是否也需要回收
     } else {
       ++i; // 只有当子弹没有被回收时才移动到下一个索引
     }
   }
 }
-
-void BulletManager::clearBullets()
+BulletManager::BulletBuffer BulletManager::getActiveBullets() const noexcept
 {
-  m_activeCount = 0;
+  return { m_bulPos.data(), m_bulMotion.data(), m_bulMeta.data() };
 }
 } // namespace Game

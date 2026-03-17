@@ -8,7 +8,6 @@ namespace Game {
 
 template <typename BulletMotion>
 BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
-  : m_activeCount(0)
 {
   m_bulPos.resize(capacity);
   m_bulMotion.resize(capacity);
@@ -22,8 +21,14 @@ void BulletManager<BulletMotion>::spawnBullet(BulletPosition pos,
                                               BulletMetadata meta) noexcept
 {
   if (m_bulPos.size() <= m_activeCount) {
-    LOG_WARN("BulletManager capacity reached. Cannot spawn more bullets.");
-    return;
+    std::uint32_t oldSize = m_bulPos.size();
+    LOG_WARN(
+      "BulletManager capacity reached (" + std::to_string(oldSize) +
+      "), triggering auto-expansion to 2x. Consider increase default max capacity to avoid runtime reallocations.");
+    m_bulPos.resize(oldSize * 2); // 自动扩容
+    m_bulMotion.resize(oldSize * 2);
+    m_bulMeta.resize(oldSize * 2);
+    // m_HandleSystem.resize(oldSize * 2);
   }
 
   m_bulPos[m_activeCount] = pos;
@@ -42,7 +47,7 @@ void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) 
   float const topBound = -offscreenMargin;
   float const bottomBound = screenHeight + offscreenMargin;
 
-  for (int i = 0; i < m_activeCount;) {
+  for (std::uint32_t i = 0; i < m_activeCount;) {
     BulletPosition& pos = m_bulPos[i];
     BulletMotion& motion = m_bulMotion[i];
 
@@ -72,7 +77,7 @@ void BulletManager<BulletMotion>::draw(Graphics::SpriteRenderer* sr, Graphics::T
   // 暂时复用八云紫的贴图来当做子弹, 缩小到 20x20
   auto yukari = tm->getTexture("yukari");
 
-  for (int i = 0; i < m_activeCount; ++i) {
+  for (std::uint32_t i = 0; i < m_activeCount; ++i) {
     float angle;
     if constexpr (std::is_same_v<BulletMotion, BulletMotionP>) {
       // 子弹贴图旋转角度 = 运动方向角度 - 90 度 (因为默认贴图朝上, 需要调整)

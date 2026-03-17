@@ -18,11 +18,12 @@ EntityManager::EntityManager(std::size_t capacity)
 EntityManager::Handle EntityManager::spawnEntity(Entity entity) noexcept
 {
   if (m_entities.size() <= m_activeCount) {
+    std::uint32_t oldSize = m_entities.size();
     LOG_WARN(
-      "EntityManager capacity reached (" + std::to_string(m_entities.size()) +
+      "EntityManager capacity reached (" + std::to_string(oldSize) +
       "), triggering auto-expansion to 2x. Consider increase default max capacity to avoid runtime reallocations.");
-    m_entities.resize(m_entities.size() * 2); // 自动扩容
-    m_HandleSystem.resize(m_entities.size() * 2);
+    m_entities.resize(oldSize * 2); // 自动扩容
+    m_HandleSystem.resize(oldSize * 2);
   }
 
   Handle handle = m_HandleSystem.createHandle(m_activeCount);
@@ -51,8 +52,8 @@ void EntityManager::update(float screenWidth, float screenHeight)
     // 更新位置
     ei.update();
     // 边界检查
-    if (ei.getPosition().x < leftBound || ei.getPosition().x > rightBound ||
-        ei.getPosition().y < topBound || ei.getPosition().y > bottomBound) {
+    if (ei.getPosition().x < leftBound || ei.getPosition().x > rightBound || ei.getPosition().y < topBound ||
+        ei.getPosition().y > bottomBound) {
       // Swap and Pop
       m_entities[i] = m_entities[--m_activeCount];
       m_HandleSystem.notifySwapAndPop(i, m_activeCount);

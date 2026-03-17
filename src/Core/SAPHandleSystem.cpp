@@ -88,7 +88,7 @@ void SAPHandleSystem::reset() noexcept
   size_type capacity = m_sparseToDense.size();
   m_freeIndices.clear();
   for (size_type i = 0; i < capacity; ++i) {
-    ++m_generations[i]; // 增加代数，确保持有的旧 Handle 全部失效
+    ++m_generations[i];                        // 增加代数，确保持有的旧 Handle 全部失效
     m_freeIndices.push_back(capacity - 1 - i); // 重新逆序填充空闲索引
   }
 }

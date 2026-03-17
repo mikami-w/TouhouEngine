@@ -62,7 +62,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
     if (auto e = m_entityManager.getEntity(entityHandle)) {
       // LOG_INFO("Entity spawned at position: (" + std::to_string(entity.getPosition().x) + ", " +
       //          std::to_string(entity.getPosition().y) + ")");
-      e->setPosition({ center.x + Math::sin(m_logicalFrame*0.1) * 50, center.y }); // 可以修改实体位置
+      e->setPosition({ center.x + Math::sin(m_logicalFrame * 0.1) * 50, center.y }); // 可以修改实体位置
     } else {
       LOG_ERROR("Invalid entity handle.");
     }

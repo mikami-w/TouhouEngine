@@ -45,13 +45,13 @@ public:
 
   // 获取有效子弹数据 buffer
   BulletBuffer getActiveBullets() const noexcept;
-  int getActiveCount() const noexcept { return m_activeCount; }
+  std::uint32_t getActiveCount() const noexcept { return m_activeCount; }
 
 private:
   std::vector<BulletPosition> m_bulPos;
   std::vector<BulletMotion> m_bulMotion;
   std::vector<BulletMetadata> m_bulMeta;
-  int m_activeCount = 0;
+  std::uint32_t m_activeCount = 0;
 };
 } // namespace Game
 

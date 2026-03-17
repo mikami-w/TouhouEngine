@@ -140,14 +140,14 @@ void Application::render()
   m_world->draw(m_spriteRenderer.get());
 
   // 下面这段原本是用来让八云紫在屏幕中心小幅摆动, 充当发弹者, 后面由EnemyManager负责
-  Graphics::Texture* yukari = m_textureManager->getTexture("yukari");
-  static long long timecount = 0;
-  float time = static_cast<float>(timecount++);
-  float angle = Math::sin(time / 30.0f) * 0.2f;
-  float width = yukari->getWidth() / 4.0f;
-  float height = yukari->getHeight() / 4.0f;
-  m_spriteRenderer->drawSprite(
-    yukari, { m_config.playArea.logicalWidth / 2, m_config.playArea.logicalHeight / 2 }, angle, { -width, height });
+  // Graphics::Texture* yukari = m_textureManager->getTexture("yukari");
+  // static long long timecount = 0;
+  // float time = static_cast<float>(timecount++);
+  // float angle = Math::sin(time / 30.0f) * 0.2f;
+  // float width = yukari->getWidth() / 4.0f;
+  // float height = yukari->getHeight() / 4.0f;
+  // m_spriteRenderer->drawSprite(
+  //   yukari, { m_config.playArea.logicalWidth / 2, m_config.playArea.logicalHeight / 2 }, angle, { -width, height });
 
   // 切换视口到全屏, 绘制 fps
   m_spriteRenderer->setView(

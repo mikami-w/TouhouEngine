@@ -8,7 +8,7 @@ set(GAME_SOURCES
         World.hpp
         EntityManager.cpp
         EntityManager.hpp
-        Entity.cpp
+        Entity.ipp
         Entity.hpp
         BulletSystem.cpp
         BulletSystem.hpp

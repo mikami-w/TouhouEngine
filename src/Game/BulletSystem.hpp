@@ -12,28 +12,23 @@ namespace Game {
 class BulletSystem
 {
 public:
-  BulletSystem() = default;
+  BulletSystem(std::size_t capacity);
   ~BulletSystem() = default;
 
   template <typename BulletMotion>
   void spawnBullet(BulletPosition pos, BulletMotion motion, BulletMetadata meta);
 
-  void init(std::size_t capacity);
   void update(float screenWidth, float screenHeight);
-  void clearBullets();
+  void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const;
 
-  void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm);
+  void clearBullets();
 
 private:
   BulletManager<BulletMotionP> m_bulletManagerP;
   BulletManager<BulletMotionR> m_bulletManagerR;
-};
 
-inline void BulletSystem::init(std::size_t capacity)
-{
-  m_bulletManagerP.init(capacity);
-  m_bulletManagerR.init(capacity);
-}
+  // 后续加入激光等子弹类型时, 可以继续添加对应的 BulletManager 实例
+};
 
 template <typename BulletMotion>
 void BulletSystem::spawnBullet(BulletPosition pos, BulletMotion motion, BulletMetadata meta)
@@ -51,6 +46,12 @@ inline void BulletSystem::update(float screenWidth, float screenHeight)
 {
   m_bulletManagerP.update(screenWidth, screenHeight);
   m_bulletManagerR.update(screenWidth, screenHeight);
+}
+
+inline void BulletSystem::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const
+{
+  m_bulletManagerP.draw(sr, tm);
+  m_bulletManagerR.draw(sr, tm);
 }
 
 inline void BulletSystem::clearBullets()

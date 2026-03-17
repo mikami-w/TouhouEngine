@@ -1,17 +1,18 @@
 #include <string>
 
 #include "Core/Logger.hpp"
+#include "Graphics/SpriteRenderer.hpp"
+#include "Graphics/TextureManager.hpp"
 
 namespace Game {
 
 template <typename BulletMotion>
-void BulletManager<BulletMotion>::init(std::size_t capacity)
+BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
+  : m_activeCount(0)
 {
   m_bulPos.resize(capacity);
   m_bulMotion.resize(capacity);
   m_bulMeta.resize(capacity);
-
-  m_activeCount = 0;
   LOG_INFO("BulletManager initialized with capacity: " + std::to_string(capacity));
 }
 
@@ -58,6 +59,35 @@ void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) 
     } else {
       ++i; // 只有当子弹没有被回收时才移动到下一个索引
     }
+  }
+}
+
+template <typename BulletMotion>
+void BulletManager<BulletMotion>::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const
+{
+  namespace Math = Core::Math;
+
+  auto bullets = getActiveBullets();
+
+  // 暂时复用八云紫的贴图来当做子弹, 缩小到 20x20
+  auto yukari = tm->getTexture("yukari");
+
+  for (int i = 0; i < m_activeCount; ++i) {
+    float angle;
+    if constexpr (std::is_same_v<BulletMotion, BulletMotionP>) {
+      // 子弹贴图旋转角度 = 运动方向角度 - 90 度 (因为默认贴图朝上, 需要调整)
+      angle = bullets.bulMotion[i].angle - Math::PI_2_f;
+    } else if constexpr (std::is_same_v<BulletMotion, BulletMotionR>) {
+      // 计算运动方向角度
+      angle = Math::atan2(bullets.bulMotion[i].vel.y, bullets.bulMotion[i].vel.x);
+    } else {
+      static_assert(false, "Unsupported BulletMotion type");
+    }
+    sr->drawSprite(yukari,
+                   bullets.bulPos[i],
+                   angle,           // 子弹总是面向运动方向
+                   { 20.0f, 20.0f } // 子弹大小
+    );
   }
 }
 

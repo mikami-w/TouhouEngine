@@ -5,6 +5,11 @@
 
 #include "Game/Bullet.hpp"
 
+namespace Graphics {
+class SpriteRenderer;
+class TextureManager;
+} // namespace Graphics
+
 namespace Game {
 template <typename BulletMotion>
 class BulletManager
@@ -18,7 +23,7 @@ public:
   };
 
 public:
-  BulletManager() = default;
+  BulletManager(std::size_t capacity);
   ~BulletManager() = default;
 
   BulletManager(BulletManager const&) = delete;
@@ -26,13 +31,14 @@ public:
   BulletManager(BulletManager&&) = delete;
   BulletManager& operator=(BulletManager&&) = delete;
 
-  void init(std::size_t capacity); // 初始化内存池大小
-
   // 创造一颗新子弹
   void spawnBullet(BulletPosition pos, BulletMotion const& bulletMotion, BulletMetadata meta) noexcept;
 
   // 每帧调用, 更新位置并回收出界子弹
   void update(float screenWidth, float screenHeight) noexcept;
+
+  // 遍历并绘制
+  void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const;
 
   // 清空全屏子弹
   void clearBullets() noexcept { m_activeCount = 0; }

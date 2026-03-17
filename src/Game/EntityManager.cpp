@@ -8,20 +8,33 @@
 namespace Game {
 
 EntityManager::EntityManager(std::size_t capacity)
+  : m_HandleSystem(capacity)
 {
   m_entities.resize(capacity);
   m_activeCount = 0;
   LOG_INFO("EntityManager initialized with capacity: " + std::to_string(capacity));
 }
 
-void EntityManager::spawnEntity(Entity entity) noexcept
+EntityManager::Handle EntityManager::spawnEntity(Entity entity) noexcept
 {
   if (m_entities.size() <= m_activeCount) {
-    LOG_WARN("EntityManager capacity reached. Cannot spawn more entities.");
-    return;
+    LOG_WARN(
+      "EntityManager capacity reached (" + std::to_string(m_entities.size()) +
+      "), triggering auto-expansion to 2x. Consider increase default max capacity to avoid runtime reallocations.");
+    m_entities.resize(m_entities.size() * 2); // 自动扩容
+    m_HandleSystem.resize(m_entities.size() * 2);
   }
 
+  Handle handle = m_HandleSystem.createHandle(m_activeCount);
   m_entities[m_activeCount++] = entity;
+
+  return handle;
+}
+
+Entity* EntityManager::getEntity(Handle handle) noexcept
+{
+  std::uint32_t index = m_HandleSystem.toDataIndex(handle);
+  return index != Core::SAPHandleSystem::INVALID_INDEX ? &m_entities[m_HandleSystem.toDataIndex(handle)] : nullptr;
 }
 
 void EntityManager::update(float screenWidth, float screenHeight)
@@ -32,16 +45,17 @@ void EntityManager::update(float screenWidth, float screenHeight)
   float const topBound = -offscreenMargin;
   float const bottomBound = screenHeight + offscreenMargin;
 
-  for (int i = 0; i < m_activeCount;) {
-    Entity& entity = m_entities[i];
+  for (std::uint32_t i = 0; i < m_activeCount;) {
+    Entity& ei = m_entities[i];
 
     // 更新位置
-    entity.update();
+    ei.update();
     // 边界检查
-    if (entity.getPosition().x < leftBound || entity.getPosition().x > rightBound ||
-        entity.getPosition().y < topBound || entity.getPosition().y > bottomBound) {
+    if (ei.getPosition().x < leftBound || ei.getPosition().x > rightBound ||
+        ei.getPosition().y < topBound || ei.getPosition().y > bottomBound) {
       // Swap and Pop
       m_entities[i] = m_entities[--m_activeCount];
+      m_HandleSystem.notifySwapAndPop(i, m_activeCount);
       // 无需 ++i, 因为需要立刻检查被交换过来的子弹是否也需要回收
     } else {
       ++i; // 只有当子弹没有被回收时才移动到下一个索引
@@ -58,12 +72,8 @@ void EntityManager::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager*
   // 暂时复用八云紫的贴图
   auto yukari = tm->getTexture("yukari");
 
-  for (int i = 0; i < m_activeCount; ++i) {
-    sr->drawSprite(yukari,
-                   entities[i].getPosition(),
-                   0.0f,
-                   { yukari->getWidth() / 4.0f, yukari->getHeight() / 4.0f }
-    );
+  for (std::uint32_t i = 0; i < m_activeCount; ++i) {
+    sr->drawSprite(yukari, entities[i].getPosition(), 0.0f, { yukari->getWidth() / 4.0f, yukari->getHeight() / 4.0f });
   }
 }
 } // namespace Game

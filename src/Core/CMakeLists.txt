@@ -14,6 +14,8 @@ set(CORE_SOURCES
         ConfigManager.cpp
         ConfigManager.hpp
         BasicTypes.hpp
+        SAPHandleSystem.cpp
+        SAPHandleSystem.hpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

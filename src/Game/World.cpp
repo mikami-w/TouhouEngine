@@ -31,8 +31,9 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   namespace Math = Core::Math;
   ++m_logicalFrame;
 
+  Core::Position center{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
   // 只执行一次, 在游戏区域边界生成一圈静止子弹; 生成中心发弹实体
-  static int const blackMagicHack_initSpawn = [&] {
+  static auto const blackMagicHack_initSpawn_andReturnHandle = [&] {
     BulletPosition pos{};
     while (pos.y <= playAreaSettings.logicalHeight) {
       m_bulletSystem.spawnBullet(pos, BulletMotionP{}, {});
@@ -50,15 +51,24 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
       pos.y = 0.0f;
     }
 
-    Core::Position epos{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
-    m_entityManager.spawnEntity(Entity(epos)); // 需要接收值
+    auto handle = m_entityManager.spawnEntity(Entity(center)); // 需要接收值
 
-    return 0;
+    return handle;
   }();
 
   {
-    Core::Position pos{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
+    // 测试句柄
+    auto& entityHandle = blackMagicHack_initSpawn_andReturnHandle;
+    if (auto e = m_entityManager.getEntity(entityHandle)) {
+      // LOG_INFO("Entity spawned at position: (" + std::to_string(entity.getPosition().x) + ", " +
+      //          std::to_string(entity.getPosition().y) + ")");
+      e->setPosition({ center.x + Math::sin(m_logicalFrame*0.1) * 50, center.y }); // 可以修改实体位置
+    } else {
+      LOG_ERROR("Invalid entity handle.");
+    }
+  }
 
+  {
     // 生成子弹
     static constexpr double spawnAngAccel = 0.001f;
     static double spawnAngle = 0.0f;
@@ -69,7 +79,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
 
     // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
     for (int i = 0; i < 1; i++) {
-      BulletEmitter::emitRing(pos, spawnAngle, speed, 6);
+      BulletEmitter::emitRing(center, spawnAngle, speed, 600);
     }
   }
 

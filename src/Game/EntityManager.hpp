@@ -38,7 +38,7 @@ public:
   std::uint32_t getActiveCount() const noexcept { return m_activeCount; }
 
 private:
-  Core::SAPHandleSystem m_HandleSystem;
+  Core::SAPHandleSystem m_handleSystem;
   std::vector<Entity> m_entities;
   std::uint32_t m_activeCount = 0;
 };

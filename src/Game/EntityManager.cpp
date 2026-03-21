@@ -8,7 +8,7 @@
 namespace Game {
 
 EntityManager::EntityManager(std::size_t capacity)
-  : m_HandleSystem(capacity)
+  : m_handleSystem(capacity)
 {
   m_entities.resize(capacity);
   m_activeCount = 0;
@@ -23,10 +23,10 @@ EntityManager::Handle EntityManager::spawnEntity(Entity entity) noexcept
       "EntityManager capacity reached (" + std::to_string(oldSize) +
       "), triggering auto-expansion to 2x. Consider increase default max capacity to avoid runtime reallocations.");
     m_entities.resize(oldSize * 2); // 自动扩容
-    m_HandleSystem.resize(oldSize * 2);
+    m_handleSystem.resize(oldSize * 2);
   }
 
-  Handle handle = m_HandleSystem.createHandle(m_activeCount);
+  Handle handle = m_handleSystem.createHandle(m_activeCount);
   m_entities[m_activeCount++] = entity;
 
   return handle;
@@ -34,8 +34,8 @@ EntityManager::Handle EntityManager::spawnEntity(Entity entity) noexcept
 
 Entity* EntityManager::getEntity(Handle handle) noexcept
 {
-  std::uint32_t index = m_HandleSystem.toDataIndex(handle);
-  return index != Core::SAPHandleSystem::INVALID_INDEX ? &m_entities[m_HandleSystem.toDataIndex(handle)] : nullptr;
+  std::uint32_t index = m_handleSystem.toDataIndex(handle);
+  return index != Core::SAPHandleSystem::INVALID_INDEX ? &m_entities[index] : nullptr;
 }
 
 void EntityManager::update(float screenWidth, float screenHeight)
@@ -56,7 +56,7 @@ void EntityManager::update(float screenWidth, float screenHeight)
         ei.getPosition().y > bottomBound) {
       // Swap and Pop
       m_entities[i] = m_entities[--m_activeCount];
-      m_HandleSystem.notifySwapAndPop(i, m_activeCount);
+      m_handleSystem.notifySwapAndPop(i, m_activeCount);
       // 无需 ++i, 因为需要立刻检查被交换过来的子弹是否也需要回收
     } else {
       ++i; // 只有当子弹没有被回收时才移动到下一个索引

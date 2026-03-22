@@ -70,6 +70,7 @@ void BulletManager<BulletMotion>::cancelBullet(BulletHandle handle, bool spawnBo
     return;
   }
   // TODO: lifetime清零等消弹逻辑
+  *bullet.position = { -1000.0f, -1000.0f }; // 把子弹移出屏幕
   // 这里不直接作废句柄, 而是等待 update 中统一回收并执行 swap and pop
 }
 

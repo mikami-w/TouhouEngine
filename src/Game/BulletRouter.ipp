@@ -12,14 +12,42 @@ inline BulletRouter::BulletRouter(std::size_t capacity)
 }
 
 template <SimpleMotion BulletMotion>
-void BulletRouter::spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept
+BulletHandle BulletRouter::spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept
 {
   if constexpr (std::is_same_v<BulletMotion, BulletMotionP>) {
-    m_bulletManagerP.spawnBullet(pos, motion, meta);
+    return m_bulletManagerP.spawnBullet(pos, motion, meta);
   } else if constexpr (std::is_same_v<BulletMotion, BulletMotionR>) {
-    m_bulletManagerR.spawnBullet(pos, motion, meta);
+    return m_bulletManagerR.spawnBullet(pos, motion, meta);
   } else {
     static_assert(false, "Unsupported BulletMotion type");
+  }
+  return {};
+}
+
+template <SimpleMotion BulletMotion>
+void BulletRouter::setMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept
+{
+  BulletView view = getBullet(handle);
+  if (!view) {
+    return; // 无效视图
+  }
+
+  if (handle.type == BulletMotionType::Polar) {
+    if constexpr (std::is_same_v<BulletMotion, BulletMotionP>) {
+      *(view.motion.polar) = newMotion; // 类型相同直接修改动作模组
+    } else {
+      auto oldHandle = handle;
+      handle = spawnBullet(*view.position, newMotion, *view.metadata); // 使用新的动作模组生成新子弹并修改句柄
+      cancelBullet(oldHandle, false);                                  // 取消旧子弹
+    }
+  } else if (handle.type == BulletMotionType::Rectangular) {
+    if constexpr (std::is_same_v<BulletMotion, BulletMotionR>) {
+      *(view.motion.rectangular) = newMotion; // 类型相同直接修改动作模组
+    } else {
+      auto oldHandle = handle;
+      handle = spawnBullet(*view.position, newMotion, *view.metadata); // 使用新的动作模组生成新子弹并修改句柄
+      cancelBullet(oldHandle, false);                                  // 取消旧子弹
+    }
   }
 }
 

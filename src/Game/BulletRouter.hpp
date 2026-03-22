@@ -16,9 +16,11 @@ public:
   ~BulletRouter() = default;
 
   template <SimpleMotion BulletMotion>
-  void spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept;
+  BulletHandle spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept;
   BulletView getBullet(BulletHandle handle);
   void cancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
+  template <SimpleMotion BulletMotion>
+  void setMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept;
 
   void update(float screenWidth, float screenHeight);
   void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const;

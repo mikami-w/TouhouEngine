@@ -1,6 +1,7 @@
 #include "World.hpp"
 
 #include "BulletEmitter.hpp"
+#include "BulletSystem.hpp"
 #include "Core/Logger.hpp"
 #include "Core/MathUtils.hpp"
 #include "Graphics/SpriteRenderer.hpp"
@@ -14,6 +15,7 @@ World::World(Graphics::TextureManager* textureManager)
   , m_entityManager(20000)
 {
   BulletEmitter::detail::init(&m_bulletRouter); // 依赖注入, 将 BulletRouter 的地址传递给 BulletEmitter
+  BulletSystem::detail::init(&m_bulletRouter);  // 依赖注入, 将 BulletRouter 的地址传递给 BulletSystem
   reset();
   LOG_INFO("World initialized.");
 }
@@ -57,7 +59,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   }();
 
   {
-    // 测试句柄
+    // 实体句柄测试
     auto& entityHandle = blackMagicHack_initSpawn_andReturnHandle;
     if (auto e = m_entityManager.getEntity(entityHandle)) {
       // LOG_INFO("Entity spawned at position: (" + std::to_string(entity.getPosition().x) + ", " +
@@ -69,7 +71,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   }
 
   {
-    // 生成子弹
+    // 生成子弹测试-波与粒的境界
     static constexpr double spawnAngAccel = 0.001f;
     static double spawnAngle = 0.0f;
     static double spawnAngVel = 0.0f;
@@ -77,9 +79,24 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
     spawnAngle += spawnAngVel;
     static constexpr float speed = 8.0f;
 
+    BulletMotionP firstMotionModule;
+    firstMotionModule.angle = spawnAngle;
+    firstMotionModule.speed = speed;
+
+    static unsigned flag = 0;
     // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
     for (int i = 0; i < 1; i++) {
-      BulletEmitter::emitRing(center, spawnAngle, speed, 600, 0);
+      auto handles = BulletEmitter::emitRing(center, firstMotionModule, {}, 6, 0);
+      if (!(flag++ % 3)) {
+        m_bulletRouter.setMotionModule(
+          handles[0],
+          BulletMotionR{ { 4.0f, 0.0f },
+                         { 0.0f, 0.1f } }); // 测试修改动作模组, 把第一颗子弹改成矩形运动, 其他保持极坐标运动
+        m_bulletRouter.setMotionModule(
+          handles[3],
+          BulletMotionR{ { -4.0f, 0.0f },
+                         { 0.0f, 0.1f } });
+      }
     }
   }
 

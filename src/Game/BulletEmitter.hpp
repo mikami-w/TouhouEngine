@@ -14,24 +14,12 @@ inline void init(BulletRouter* bulletRouter) noexcept
 }
 } // namespace detail
 
-// 发射环状子弹
-void emitRing(Position center, float angle, float speed, int count, float radius);
-
-// 使用矢量速度创造子弹
-void spawnBulletP(Position pos, Core::Vector2 vel, Core::Vector2 accel, BulletMetadata meta) noexcept;
-
-// 使用角(弧度制)和速率创造子弹
-void spawnBulletR(Position pos,
-                  float angle,
-                  float angVel,
-                  float angAccel,
-                  float speed,
-                  float tanAccel,
-                  BulletMetadata meta) noexcept;
 
 template <SimpleMotion BulletMotion>
-void spawnBullet(Position pos, BulletMotion bulletMotion, BulletMetadata meta) noexcept
-{
-  detail::g_bulletRouter->spawnBullet(pos, bulletMotion, meta);
-}
+BulletHandle spawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
+
+void emitRing(Position center, BulletMotionP firstMotionModule, int count, float radius);
+
 } // namespace Game::BulletEmitter
+
+#include "BulletEmitter.ipp"

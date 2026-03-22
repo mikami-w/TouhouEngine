@@ -2,7 +2,7 @@ set(GAME_SOURCES
         Bullet.hpp
         BulletManager.tpp
         BulletManager.hpp
-        BulletEmitter.cpp
+        BulletEmitter.ipp
         BulletEmitter.hpp
         World.cpp
         World.hpp
@@ -12,6 +12,8 @@ set(GAME_SOURCES
         Entity.hpp
         BulletRouter.ipp
         BulletRouter.hpp
+        BulletSystem.ipp
+        BulletSystem.hpp
 )
 
 add_library(Game STATIC ${GAME_SOURCES})

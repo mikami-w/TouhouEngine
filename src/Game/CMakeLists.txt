@@ -10,8 +10,8 @@ set(GAME_SOURCES
         EntityManager.hpp
         Entity.ipp
         Entity.hpp
-        BulletSystem.cpp
-        BulletSystem.hpp
+        BulletRouter.ipp
+        BulletRouter.hpp
 )
 
 add_library(Game STATIC ${GAME_SOURCES})

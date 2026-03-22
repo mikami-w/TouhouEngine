@@ -6,12 +6,18 @@
 #include "Core/MathUtils.hpp"
 
 namespace Game {
-using BulletPosition = Core::Vector2; // 子弹位置, 以屏幕坐标 (像素) 表示
+using Position = Core::Position; // 子弹位置, 以屏幕坐标 (像素) 表示
 
 struct BulletMetadata
 {
   std::uint8_t type = 0;  // 子弹 (贴图) 类型
   std::uint8_t color = 0; // 颜色
+};
+
+enum class BulletMotionType : std::uint8_t
+{
+  Polar,
+  Rectangular
 };
 
 // BulletMotion in Polar coordinates, 极坐标系中运动的子弹
@@ -23,7 +29,7 @@ struct BulletMotionP
   float speed = 0;    // 速率, 每帧移动的像素数
   float tanAccel = 0; // 切向加速度, 每帧增加的速率
 
-  __forceinline void updatePosition(BulletPosition& pos) noexcept
+  __forceinline void updatePosition(Position& pos) noexcept
   {
     // 半隐式欧拉积分: 先更新速度, 再更新位置
     angVel += angAccel;
@@ -40,12 +46,28 @@ struct BulletMotionR
   Core::Vector2 vel{};
   Core::Vector2 accel{};
 
-  __forceinline void updatePosition(BulletPosition& pos) noexcept
+  __forceinline void updatePosition(Position& pos) noexcept
   {
     vel.x += accel.x;
     vel.y += accel.y;
     pos.x += vel.x;
     pos.y += vel.y;
   }
+};
+
+struct BulletView
+{
+  BulletMotionType motionType = BulletMotionType::Polar;
+  Position* position = nullptr;
+  BulletMetadata* metadata = nullptr;
+  union
+  {
+    void* raw = nullptr;
+    BulletMotionP* polar;
+    BulletMotionR* rectangular;
+  } motion;
+
+  bool isValid() const noexcept { return position != nullptr; }
+  operator bool() const noexcept { return isValid(); }
 };
 } // namespace Game

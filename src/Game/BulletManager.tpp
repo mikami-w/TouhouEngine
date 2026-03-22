@@ -1,3 +1,5 @@
+#include "Bullet.hpp"
+
 #include <string>
 
 #include "Core/Logger.hpp"
@@ -8,6 +10,7 @@ namespace Game {
 
 template <typename BulletMotion>
 BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
+  : m_handleSystem(capacity)
 {
   m_bulPos.resize(capacity);
   m_bulMotion.resize(capacity);
@@ -16,9 +19,9 @@ BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
 }
 
 template <typename BulletMotion>
-void BulletManager<BulletMotion>::spawnBullet(BulletPosition pos,
-                                              BulletMotion const& bulletMotion,
-                                              BulletMetadata meta) noexcept
+BulletHandle BulletManager<BulletMotion>::spawnBullet(Position pos,
+                                                      BulletMotion const& bulletMotion,
+                                                      BulletMetadata meta) noexcept
 {
   if (m_bulPos.size() <= m_activeCount) {
     std::uint32_t oldSize = m_bulPos.size();
@@ -28,14 +31,46 @@ void BulletManager<BulletMotion>::spawnBullet(BulletPosition pos,
     m_bulPos.resize(oldSize * 2); // 自动扩容
     m_bulMotion.resize(oldSize * 2);
     m_bulMeta.resize(oldSize * 2);
-    // m_HandleSystem.resize(oldSize * 2);
+    m_handleSystem.resize(oldSize * 2);
   }
 
+  auto handle = m_handleSystem.createHandle(m_activeCount);
   m_bulPos[m_activeCount] = pos;
   m_bulMotion[m_activeCount] = bulletMotion;
   m_bulMeta[m_activeCount] = meta;
-
   ++m_activeCount;
+
+  return { handle, detail::BULLET_MOTION_TYPE<BulletMotion> };
+}
+
+template <typename BulletMotion>
+BulletView BulletManager<BulletMotion>::getBullet(BulletHandle handle) noexcept
+{
+#if defined(_DEBUG)
+  if (handle.type != detail::BULLET_MOTION_TYPE<BulletMotion>) {
+    LOG_ERROR("BulletHandle motion type mismatch when accessing BulletManager. Expected: " +
+              std::to_string(static_cast<int>(detail::BULLET_MOTION_TYPE<BulletMotion>)) +
+              ", Actual: " + std::to_string(static_cast<int>(handle.type)));
+    return {};
+  }
+#endif
+  std::uint32_t index = m_handleSystem.toDataIndex(handle.handle);
+  return index != Core::SAPHandleSystem::INVALID_INDEX ? BulletView{ detail::BULLET_MOTION_TYPE<BulletMotion>,
+                                                                     &m_bulPos[index],
+                                                                     &m_bulMeta[index],
+                                                                     { .raw = &m_bulMotion[index] } }
+                                                       : BulletView{};
+}
+
+template <typename BulletMotion>
+void BulletManager<BulletMotion>::cancelBullet(BulletHandle handle, bool spawnBonus) noexcept
+{
+  BulletView bullet = getBullet(handle);
+  if (!bullet) {
+    return;
+  }
+  // TODO: lifetime清零等消弹逻辑
+  // 这里不直接作废句柄, 而是等待 update 中统一回收并执行 swap and pop
 }
 
 template <typename BulletMotion>
@@ -48,7 +83,7 @@ void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) 
   float const bottomBound = screenHeight + offscreenMargin;
 
   for (std::uint32_t i = 0; i < m_activeCount;) {
-    BulletPosition& pos = m_bulPos[i];
+    Position& pos = m_bulPos[i];
     BulletMotion& motion = m_bulMotion[i];
 
     // 更新位置
@@ -60,6 +95,7 @@ void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) 
       m_bulPos[i] = m_bulPos[m_activeCount];
       m_bulMotion[i] = m_bulMotion[m_activeCount];
       m_bulMeta[i] = m_bulMeta[m_activeCount];
+      m_handleSystem.notifySwapAndPop(i, m_activeCount); // 通知句柄系统当前被回收的子弹索引和被交换过来的子弹索引
       // 无需 ++i, 因为需要立刻检查被交换过来的子弹是否也需要回收
     } else {
       ++i; // 只有当子弹没有被回收时才移动到下一个索引
@@ -94,6 +130,13 @@ void BulletManager<BulletMotion>::draw(Graphics::SpriteRenderer* sr, Graphics::T
                    { 20.0f, 20.0f } // 子弹大小
     );
   }
+}
+
+template <typename BulletMotion>
+void BulletManager<BulletMotion>::clearBullets() noexcept
+{
+  m_activeCount = 0;
+  m_handleSystem.reset();
 }
 
 template <typename BulletMotion>

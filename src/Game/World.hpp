@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "BulletSystem.hpp"
+#include "BulletRouter.hpp"
 #include "Core/EngineSettings.hpp"
 #include "EntityManager.hpp"
 
@@ -27,7 +27,7 @@ public:
 
 private:
   Graphics::TextureManager* m_textureManager; // 仅观察, 不拥有纹理资源
-  BulletSystem m_bulletSystem;
+  BulletRouter m_bulletRouter;
   EntityManager m_entityManager;
 
   std::uint64_t m_logicalFrame = 0; // 游戏内的绝对时间轴

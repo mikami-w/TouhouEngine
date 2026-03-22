@@ -10,10 +10,10 @@ namespace Game {
 
 World::World(Graphics::TextureManager* textureManager)
   : m_textureManager(textureManager)
-  , m_bulletSystem(50000 - 5000)
+  , m_bulletRouter(50000 - 5000)
   , m_entityManager(20000)
 {
-  BulletEmitter::init(&m_bulletSystem); // 依赖注入, 将 BulletManager 的地址传递给 BulletEmitter
+  BulletEmitter::detail::init(&m_bulletRouter); // 依赖注入, 将 BulletRouter 的地址传递给 BulletEmitter
   reset();
   LOG_INFO("World initialized.");
 }
@@ -21,7 +21,7 @@ World::World(Graphics::TextureManager* textureManager)
 void World::reset()
 {
   m_logicalFrame = 0;
-  m_bulletSystem.clearBullets();
+  m_bulletRouter.clearBullets();
   m_entityManager.clearEntities();
   LOG_INFO("World reset: logical frame reset, bullets and entities cleared.");
 }
@@ -36,17 +36,17 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   static auto const blackMagicHack_initSpawn_andReturnHandle = [&] {
     Position pos{};
     while (pos.y <= playAreaSettings.logicalHeight) {
-      m_bulletSystem.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
       pos.x = playAreaSettings.logicalWidth;
-      m_bulletSystem.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
       pos.y += 10.0f;
       pos.x = 0.0f;
     }
     pos = {};
     while (pos.x <= playAreaSettings.logicalWidth) {
-      m_bulletSystem.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
       pos.y = playAreaSettings.logicalHeight;
-      m_bulletSystem.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
       pos.x += 10.0f;
       pos.y = 0.0f;
     }
@@ -84,13 +84,13 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   }
 
   // 更新子弹位置, 并回收出界子弹
-  m_bulletSystem.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
+  m_bulletRouter.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
   m_entityManager.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
 }
 
 void World::draw(Graphics::SpriteRenderer* renderer) const
 {
-  m_bulletSystem.draw(renderer, m_textureManager);
+  m_bulletRouter.draw(renderer, m_textureManager);
   m_entityManager.draw(renderer, m_textureManager);
 }
 }

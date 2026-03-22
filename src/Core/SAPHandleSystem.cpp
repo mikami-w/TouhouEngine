@@ -1,5 +1,7 @@
 #include "SAPHandleSystem.hpp"
 
+#include <numeric>
+
 #include "Logger.hpp"
 
 namespace Core {
@@ -85,11 +87,9 @@ void SAPHandleSystem::resize(size_type newCapacity)
 
 void SAPHandleSystem::reset() noexcept
 {
-  size_type capacity = m_sparseToDense.size();
-  m_freeIndices.clear();
-  for (size_type i = 0; i < capacity; ++i) {
-    ++m_generations[i];                        // 增加代数，确保持有的旧 Handle 全部失效
-    m_freeIndices.push_back(capacity - 1 - i); // 重新逆序填充空闲索引
+  std::iota(m_freeIndices.rbegin(), m_freeIndices.rend(), 0); // 重新逆向填充空闲索引
+  for (size_type i = 0; i < m_sparseToDense.size(); ++i) {
+    ++m_generations[i]; // 增加代数，确保持有的旧 Handle 全部失效
   }
 }
 } // namespace Core

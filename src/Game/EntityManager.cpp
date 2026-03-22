@@ -77,4 +77,10 @@ void EntityManager::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager*
     sr->drawSprite(yukari, entities[i].getPosition(), 0.0f, { yukari->getWidth() / 4.0f, yukari->getHeight() / 4.0f });
   }
 }
+
+void EntityManager::clearEntities() noexcept
+{
+  m_activeCount = 0;
+  m_handleSystem.reset();
+}
 } // namespace Game

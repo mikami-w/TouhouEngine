@@ -22,9 +22,9 @@ public:
   void update();
 
 private:
-  Core::Position m_position{};            // 实体在游戏世界中的位置
-  Graphics::Texture* m_texture = nullptr; // 仅观察, 不拥有资源; nullptr 表示无纹理, 仅作为发弹点等依附的移动轨迹
-
+  Core::Position m_position{};                   // 实体在游戏世界中的位置
+  Graphics::Texture* m_texture = nullptr;        // 仅观察, 不拥有资源; nullptr 表示无纹理, 仅作为发弹点等依附的移动轨迹
+  Graphics::Texture* m_textureOnDeath = nullptr; // 死亡纹理(动画), nullptr 表示无(直接消失)
   // 待添加: 移动
 };
 } // namespace Game

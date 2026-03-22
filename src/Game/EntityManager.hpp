@@ -23,6 +23,7 @@ public:
   // 创造实体
   Handle spawnEntity(Entity entity) noexcept;
   Entity* getEntity(Handle handle) noexcept;
+  void killEntity(Handle handle) noexcept;
 
   // 每帧调用, 更新位置并回收出界实体
   void update(float screenWidth, float screenHeight);

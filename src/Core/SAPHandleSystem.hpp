@@ -39,7 +39,7 @@ public:
 private:
   std::vector<size_type> m_sparseToDense; // 映射表, 稀疏数组到数据索引
   std::vector<size_type> m_denseToSparse; // 数据索引到稀疏数组的反向映射
-  std::vector<size_type> m_generations;   // 映射表索引对应句柄的代数
+  std::vector<size_type> m_generations;   // 映射表索引对应句柄的代数, 是 m_sparseToDense 的属性
   std::vector<size_type> m_freeIndices;   // 空闲的映射表索引
 };
 } // namespace Core

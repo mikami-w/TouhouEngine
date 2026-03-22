@@ -21,8 +21,7 @@ SAPHandleSystem::SAPHandleSystem(size_type capacity)
 SAPHandleSystem::Handle SAPHandleSystem::createHandle(size_type dataIdx)
 {
   // 找到一个映射表中可用的位置, 优先复用空闲索引, 否则在末尾创建新条目
-  size_type logicalIdx;
-  logicalIdx = m_freeIndices.back();
+  size_type logicalIdx = m_freeIndices.back();
   m_freeIndices.pop_back();
 
   // 建立双向映射

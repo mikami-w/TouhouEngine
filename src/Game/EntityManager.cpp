@@ -38,6 +38,16 @@ Entity* EntityManager::getEntity(Handle handle) noexcept
   return index != Core::SAPHandleSystem::INVALID_INDEX ? &m_entities[index] : nullptr;
 }
 
+void EntityManager::killEntity(Handle handle) noexcept
+{
+  Entity* entity = getEntity(handle);
+  if (!entity) {
+    return;
+  }
+  // TODO: 血量清零等死亡逻辑
+  // 这里不直接作废句柄, 而是等待 update 中统一回收并执行 swap and pop
+}
+
 void EntityManager::update(float screenWidth, float screenHeight)
 {
   static constexpr float offscreenMargin = 100.0f; // 允许子弹稍微出界一些再回收

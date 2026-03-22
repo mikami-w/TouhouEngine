@@ -34,7 +34,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   Core::Position center{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
   // 只执行一次, 在游戏区域边界生成一圈静止子弹; 生成中心发弹实体
   static auto const blackMagicHack_initSpawn_andReturnHandle = [&] {
-    BulletPosition pos{};
+    Position pos{};
     while (pos.y <= playAreaSettings.logicalHeight) {
       m_bulletSystem.spawnBullet(pos, BulletMotionP{}, {});
       pos.x = playAreaSettings.logicalWidth;
@@ -79,7 +79,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
 
     // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
     for (int i = 0; i < 1; i++) {
-      BulletEmitter::emitRing(center, spawnAngle, speed, 600);
+      BulletEmitter::emitRing(center, spawnAngle, speed, 600, 0);
     }
   }
 

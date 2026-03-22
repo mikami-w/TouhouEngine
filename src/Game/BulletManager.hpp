@@ -39,7 +39,7 @@ struct BulletHandle
   BulletMotionType type{};
 };
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 class BulletManager
 {
 public:

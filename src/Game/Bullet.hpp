@@ -20,6 +20,13 @@ enum class BulletMotionType : std::uint8_t
   Rectangular
 };
 
+template <typename T>
+concept SimpleMotion = requires(T motion, Position& pos) {
+  // 要求必须存在 updatePosition 成员函数，且接受 Position& 参数
+  // 并且返回类型必须是 void (或者是能转换成 void 的，通常用 std::same_as<void> 约束)
+  { motion.updatePosition(pos) } -> std::same_as<void>;
+};
+
 // BulletMotion in Polar coordinates, 极坐标系中运动的子弹
 struct BulletMotionP
 {

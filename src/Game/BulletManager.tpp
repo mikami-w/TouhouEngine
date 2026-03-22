@@ -8,7 +8,7 @@
 
 namespace Game {
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
   : m_handleSystem(capacity)
 {
@@ -18,7 +18,7 @@ BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
   LOG_INFO("BulletManager initialized with capacity: " + std::to_string(capacity));
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 BulletHandle BulletManager<BulletMotion>::spawnBullet(Position pos,
                                                       BulletMotion const& bulletMotion,
                                                       BulletMetadata meta) noexcept
@@ -43,7 +43,7 @@ BulletHandle BulletManager<BulletMotion>::spawnBullet(Position pos,
   return { handle, detail::BULLET_MOTION_TYPE<BulletMotion> };
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 BulletView BulletManager<BulletMotion>::getBullet(BulletHandle handle) noexcept
 {
 #if defined(_DEBUG)
@@ -62,7 +62,7 @@ BulletView BulletManager<BulletMotion>::getBullet(BulletHandle handle) noexcept
                                                        : BulletView{};
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 void BulletManager<BulletMotion>::cancelBullet(BulletHandle handle, bool spawnBonus) noexcept
 {
   BulletView bullet = getBullet(handle);
@@ -73,7 +73,7 @@ void BulletManager<BulletMotion>::cancelBullet(BulletHandle handle, bool spawnBo
   // 这里不直接作废句柄, 而是等待 update 中统一回收并执行 swap and pop
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) noexcept
 {
   static constexpr float offscreenMargin = 100.0f; // 允许子弹稍微出界一些再回收
@@ -103,7 +103,7 @@ void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) 
   }
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 void BulletManager<BulletMotion>::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const
 {
   namespace Math = Core::Math;
@@ -132,14 +132,14 @@ void BulletManager<BulletMotion>::draw(Graphics::SpriteRenderer* sr, Graphics::T
   }
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 void BulletManager<BulletMotion>::clearBullets() noexcept
 {
   m_activeCount = 0;
   m_handleSystem.reset();
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 typename BulletManager<BulletMotion>::BulletBuffer BulletManager<BulletMotion>::getActiveBullets() const noexcept
 {
   return { m_bulPos.data(), m_bulMotion.data(), m_bulMeta.data() };

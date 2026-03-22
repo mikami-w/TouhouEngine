@@ -11,7 +11,7 @@ inline BulletRouter::BulletRouter(std::size_t capacity)
 {
 }
 
-template <typename BulletMotion>
+template <SimpleMotion BulletMotion>
 void BulletRouter::spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept
 {
   if constexpr (std::is_same_v<BulletMotion, BulletMotionP>) {

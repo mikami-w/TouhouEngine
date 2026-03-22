@@ -15,7 +15,7 @@ public:
   BulletRouter(std::size_t capacity);
   ~BulletRouter() = default;
 
-  template <typename BulletMotion>
+  template <SimpleMotion BulletMotion>
   void spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept;
   BulletView getBullet(BulletHandle handle);
   void cancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;

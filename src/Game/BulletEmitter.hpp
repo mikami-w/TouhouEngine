@@ -12,7 +12,6 @@ inline void init(BulletRouter* bulletRouter) noexcept
 {
   g_bulletRouter = bulletRouter;
 }
-
 } // namespace detail
 
 // 发射环状子弹
@@ -30,8 +29,8 @@ void spawnBulletR(Position pos,
                   float tanAccel,
                   BulletMetadata meta) noexcept;
 
-template <typename BulletMotion>
-void spawnBullet(Position pos, BulletMotion const& bulletMotion, BulletMetadata meta) noexcept
+template <SimpleMotion BulletMotion>
+void spawnBullet(Position pos, BulletMotion bulletMotion, BulletMetadata meta) noexcept
 {
   detail::g_bulletRouter->spawnBullet(pos, bulletMotion, meta);
 }

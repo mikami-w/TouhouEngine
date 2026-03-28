@@ -3,12 +3,12 @@
 namespace Game::BulletEmitter {
 
 template <SimpleMotion BulletMotion>
-BulletHandle spawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept
+BulletHandle SpawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept
 {
   return detail::g_bulletRouter->spawnBullet(pos, motionModule, metadata);
 }
 
-inline std::vector<BulletHandle> emitRing(Position center,
+inline std::vector<BulletHandle> EmitRing(Position center,
                                           BulletMotionP firstMotionModule,
                                           BulletMetadata metadata,
                                           int count,
@@ -19,7 +19,7 @@ inline std::vector<BulletHandle> emitRing(Position center,
   handles.reserve(count);
 
   for (int i = 0; i < count; ++i) {
-    handles.push_back(spawnBullet(center, firstMotionModule, metadata));
+    handles.push_back(SpawnBullet(center, firstMotionModule, metadata));
     firstMotionModule.angle += angleStep; // 旋转角度, 形成环形
   }
   return handles;

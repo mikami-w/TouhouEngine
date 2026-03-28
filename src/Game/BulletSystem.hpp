@@ -7,24 +7,25 @@ namespace Game::BulletSystem {
 namespace detail {
 inline BulletRouter* g_bulletRouter = nullptr; // 不持有资源, 仅观察
 
-inline void init(BulletRouter* bulletRouter) noexcept
+inline void Init(BulletRouter* bulletRouter) noexcept
 {
   g_bulletRouter = bulletRouter;
 }
 } // namespace detail
 
-BulletView getBullet(BulletHandle handle);
+// TODO: 不再暴露BulletView, 不让它活到下一条指令, 防止野指针的误用
+BulletView GetBullet(BulletHandle handle);
 
-void cancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
+void CancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
 
 template <SimpleMotion BulletMotion>
-void setMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept;
+void SetMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept;
 
-void setPosition(BulletHandle handle, Position pos) noexcept;
+void SetPosition(BulletHandle handle, Position pos) noexcept;
 
-void setMetadata(BulletHandle handle, BulletMetadata meta) noexcept;
+void SetMetadata(BulletHandle handle, BulletMetadata meta) noexcept;
 
-void clearBullets() noexcept;
+void ClearBullets() noexcept;
 
 } // namespace Game::BulletSystem
 

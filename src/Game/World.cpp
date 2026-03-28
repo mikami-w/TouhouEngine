@@ -14,8 +14,8 @@ World::World(Graphics::TextureManager* textureManager)
   , m_bulletRouter(50000 - 5000)
   , m_entityManager(20000)
 {
-  BulletEmitter::detail::init(&m_bulletRouter); // 依赖注入, 将 BulletRouter 的地址传递给 BulletEmitter
-  BulletSystem::detail::init(&m_bulletRouter);  // 依赖注入, 将 BulletRouter 的地址传递给 BulletSystem
+  BulletEmitter::detail::Init(&m_bulletRouter); // 依赖注入, 将 BulletRouter 的地址传递给 BulletEmitter
+  BulletSystem::detail::Init(&m_bulletRouter);  // 依赖注入, 将 BulletRouter 的地址传递给 BulletSystem
   reset();
   LOG_INFO("World initialized.");
 }
@@ -86,7 +86,7 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
     static unsigned flag = 0;
     // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
     for (int i = 0; i < 1; i++) {
-      auto handles = BulletEmitter::emitRing(center, firstMotionModule, {}, 6, 0);
+      auto handles = BulletEmitter::EmitRing(center, firstMotionModule, {}, 6, 0);
       if (!(flag++ % 3)) {
         m_bulletRouter.setMotionModule(
           handles[0],

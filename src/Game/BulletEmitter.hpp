@@ -8,7 +8,7 @@ namespace Game::BulletEmitter {
 namespace detail {
 inline BulletRouter* g_bulletRouter = nullptr; // 不持有资源, 仅观察
 
-inline void init(BulletRouter* bulletRouter) noexcept
+inline void Init(BulletRouter* bulletRouter) noexcept
 {
   g_bulletRouter = bulletRouter;
 }
@@ -16,10 +16,11 @@ inline void init(BulletRouter* bulletRouter) noexcept
 
 
 template <SimpleMotion BulletMotion>
-BulletHandle spawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
+BulletHandle SpawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
 
-void emitRing(Position center, BulletMotionP firstMotionModule, int count, float radius);
+std::vector<BulletHandle> EmitRing(Position center, BulletMotionP firstMotionModule, int count, float radius);
 
+// 更多发射方式待拓展
 } // namespace Game::BulletEmitter
 
 #include "BulletEmitter.ipp"

@@ -31,5 +31,7 @@ private:
   EntityManager m_entityManager;
 
   std::uint64_t m_logicalFrame = 0; // 游戏内的绝对时间轴
+
+  void _temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaSettings);
 };
 }

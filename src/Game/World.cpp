@@ -30,8 +30,24 @@ void World::reset()
 
 void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
 {
-  namespace Math = Core::Math;
   ++m_logicalFrame;
+
+  _temp_logic_to_be_replaced(playAreaSettings); // 临时代码, 用于测试和演示, 之后会被正式游戏逻辑替换
+
+  // 更新子弹位置, 并回收出界子弹
+  m_bulletRouter.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
+  m_entityManager.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
+}
+
+void World::draw(Graphics::SpriteRenderer* renderer) const
+{
+  m_bulletRouter.draw(renderer, m_textureManager);
+  m_entityManager.draw(renderer, m_textureManager);
+}
+
+void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaSettings)
+{
+  namespace Math = Core::Math;
 
   Core::Position center{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
   // 只执行一次, 在游戏区域边界生成一圈静止子弹; 生成中心发弹实体
@@ -99,15 +115,5 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
       }
     }
   }
-
-  // 更新子弹位置, 并回收出界子弹
-  m_bulletRouter.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
-  m_entityManager.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
-}
-
-void World::draw(Graphics::SpriteRenderer* renderer) const
-{
-  m_bulletRouter.draw(renderer, m_textureManager);
-  m_entityManager.draw(renderer, m_textureManager);
 }
 }

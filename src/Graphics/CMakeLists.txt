@@ -10,6 +10,8 @@ set(GRAPHICS_SOURCES
         Texture.hpp
         TextureManager.cpp
         TextureManager.hpp
+        Color.hpp
+        SpriteType.hpp
 )
 
 add_library(Graphics STATIC ${GRAPHICS_SOURCES})

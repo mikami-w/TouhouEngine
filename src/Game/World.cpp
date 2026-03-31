@@ -108,10 +108,7 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
           handles[0],
           BulletMotionR{ { 4.0f, 0.0f },
                          { 0.0f, 0.1f } }); // 测试修改动作模组, 把第一颗子弹改成矩形运动, 其他保持极坐标运动
-        m_bulletRouter.setMotionModule(
-          handles[3],
-          BulletMotionR{ { -4.0f, 0.0f },
-                         { 0.0f, 0.1f } });
+        m_bulletRouter.setMotionModule(handles[3], BulletMotionR{ { -4.0f, 0.0f }, { 0.0f, 0.1f } });
       }
     }
   }

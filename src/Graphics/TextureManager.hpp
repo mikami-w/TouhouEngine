@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SpriteType.hpp"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -10,10 +12,10 @@ class Texture;
 }
 
 namespace Graphics {
-struct SpriteRegion
+struct Sprite
 {
   Texture* texture{}; // 纹理资源
-  struct
+  struct UVRect
   {
     float u = 0.0f;      // 纹理坐标起点 u
     float v = 0.0f;      // 纹理坐标起点 v
@@ -31,14 +33,21 @@ public:
   TextureManager(TextureManager const&) = delete;
   TextureManager& operator=(TextureManager const&) = delete;
 
-  Texture* loadTexture(std::string const& name, std::string const& filePath);
+  void initTextures();
+
+  Texture* loadTexture(std::string const& name, std::string_view filePath, std::string_view atlasJsonPath = "");
   Texture* getTexture(std::string const& name) const;
 
   void clear();
 
 private:
+  static void initMap();
+
+private:
   DX11Device* m_device;
   std::unordered_map<std::string, std::unique_ptr<Texture>> m_textures; // 纹理资源池
-  std::unordered_map<std::string, SpriteRegion> m_spriteRegions;
+  std::unordered_map<std::string, Sprite> m_sprites;
+
+  static std::unordered_map<std::string, SpriteType> s_spriteMap; // 名称字符串到枚举的映射
 };
 } // namespace Graphics

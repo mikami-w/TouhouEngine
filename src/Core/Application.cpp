@@ -44,8 +44,7 @@ Application::Application(Config::EngineSettings const& config)
 
   // 加载纹理资源
   m_textureManager = std::make_unique<Graphics::TextureManager>(m_gfx.get());
-  m_textureManager->loadTexture("yukari", "assets/textures/yukari.png");
-  m_textureManager->loadTexture("ascii", "assets/textures/ui/fonts/ascii.png");
+  m_textureManager->initTextures();
 
   // 初始化游戏世界, 并传入纹理管理器 (依赖注入)
   m_world = std::make_unique<Game::World>(m_textureManager.get());

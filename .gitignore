@@ -1,9 +1,12 @@
 .idea
 .vscode
+.roo
 .cache
 
 *.log
 *.bin
+.rooignore
+AGENTS.md
 
 ResourceUnused
 

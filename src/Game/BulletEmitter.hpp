@@ -14,7 +14,6 @@ inline void Init(BulletRouter* bulletRouter) noexcept
 }
 } // namespace detail
 
-
 template <SimpleMotion BulletMotion>
 BulletHandle SpawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
 

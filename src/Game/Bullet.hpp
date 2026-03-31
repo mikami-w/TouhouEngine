@@ -4,14 +4,16 @@
 
 #include "Core/BasicTypes.hpp"
 #include "Core/MathUtils.hpp"
+#include "Graphics/Color.hpp"
+#include "Graphics/SpriteType.hpp"
 
 namespace Game {
 using Position = Core::Position; // 子弹位置, 以屏幕坐标 (像素) 表示
 
 struct BulletMetadata
 {
-  std::uint8_t type = 0;  // 子弹 (贴图) 类型
-  std::uint8_t color = 0; // 颜色
+  Graphics::SpriteType type = Graphics::SpriteType::ERROR_404; // 子弹 (贴图) 类型
+  Graphics::Color::ColorType color = 0;                        // RGBA 颜色
 };
 
 enum class BulletMotionType : std::uint8_t

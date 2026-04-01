@@ -16,7 +16,7 @@ void SetMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept
   detail::g_bulletRouter->setMotionModule(handle, newMotion);
 }
 
-inline void SetPosition(BulletHandle handle, Position pos) noexcept
+inline void SetPosition(BulletHandle handle, Core::Vector2 pos) noexcept
 {
   *GetBullet(handle).position = pos;
 }

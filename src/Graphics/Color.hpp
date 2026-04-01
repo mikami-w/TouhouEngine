@@ -98,7 +98,7 @@ constexpr ColorType SetAlpha(ColorType color, std::uint8_t alpha) noexcept
 /**
  * @brief 转换为 D3D11 Clear 函数使用的 float[4] 格式
  */
-constexpr std::array<float, 4> ToFloat4(ColorType c) noexcept
+constexpr Core::Vector4 ToFloat4(ColorType c) noexcept
 {
   return { R(c) / 255.0f, G(c) / 255.0f, B(c) / 255.0f, A(c) / 255.0f };
 }

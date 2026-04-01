@@ -19,7 +19,7 @@ BulletManager<BulletMotion>::BulletManager(std::size_t capacity)
 }
 
 template <SimpleMotion BulletMotion>
-BulletHandle BulletManager<BulletMotion>::spawnBullet(Position pos,
+BulletHandle BulletManager<BulletMotion>::spawnBullet(Core::Vector2 pos,
                                                       BulletMotion const& bulletMotion,
                                                       BulletMetadata meta) noexcept
 {
@@ -84,7 +84,7 @@ void BulletManager<BulletMotion>::update(float screenWidth, float screenHeight) 
   float const bottomBound = screenHeight + offscreenMargin;
 
   for (std::uint32_t i = 0; i < m_activeCount;) {
-    Position& pos = m_bulPos[i];
+    Core::Vector2& pos = m_bulPos[i];
     BulletMotion& motion = m_bulMotion[i];
 
     // 更新位置

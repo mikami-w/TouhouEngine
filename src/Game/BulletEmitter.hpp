@@ -15,9 +15,9 @@ inline void Init(BulletRouter* bulletRouter) noexcept
 } // namespace detail
 
 template <SimpleMotion BulletMotion>
-BulletHandle SpawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
+BulletHandle SpawnBullet(Core::Vector2 pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
 
-std::vector<BulletHandle> EmitRing(Position center, BulletMotionP firstMotionModule, int count, float radius);
+std::vector<BulletHandle> EmitRing(Core::Vector2 center, BulletMotionP firstMotionModule, int count, float radius);
 
 // 更多发射方式待拓展
 } // namespace Game::BulletEmitter

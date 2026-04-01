@@ -21,7 +21,7 @@ void CancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
 template <SimpleMotion BulletMotion>
 void SetMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept;
 
-void SetPosition(BulletHandle handle, Position pos) noexcept;
+void SetPosition(BulletHandle handle, Core::Vector2 pos) noexcept;
 
 void SetMetadata(BulletHandle handle, BulletMetadata meta) noexcept;
 

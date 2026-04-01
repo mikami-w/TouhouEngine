@@ -12,7 +12,7 @@ inline BulletRouter::BulletRouter(std::size_t capacity)
 }
 
 template <SimpleMotion BulletMotion>
-BulletHandle BulletRouter::spawnBullet(Position pos, BulletMotion motion, BulletMetadata meta) noexcept
+BulletHandle BulletRouter::spawnBullet(Core::Vector2 pos, BulletMotion motion, BulletMetadata meta) noexcept
 {
   if constexpr (std::is_same_v<BulletMotion, BulletMotionP>) {
     return m_bulletManagerP.spawnBullet(pos, motion, meta);

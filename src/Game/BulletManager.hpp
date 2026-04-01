@@ -45,7 +45,7 @@ class BulletManager
 public:
   struct BulletBuffer
   {
-    Position const* bulPos = nullptr;
+    Core::Vector2 const* bulPos = nullptr;
     BulletMotion const* bulMotion = nullptr;
     BulletMetadata const* bulMeta = nullptr;
   };
@@ -60,7 +60,7 @@ public:
   BulletManager& operator=(BulletManager&&) = delete;
 
   // 创造一颗新子弹
-  BulletHandle spawnBullet(Position pos, BulletMotion const& bulletMotion, BulletMetadata meta) noexcept;
+  BulletHandle spawnBullet(Core::Vector2 pos, BulletMotion const& bulletMotion, BulletMetadata meta) noexcept;
   BulletView getBullet(BulletHandle handle) noexcept;
   void cancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
 
@@ -79,7 +79,7 @@ public:
 
 private:
   Core::SAPHandleSystem m_handleSystem;
-  std::vector<Position> m_bulPos;
+  std::vector<Core::Vector2> m_bulPos;
   std::vector<BulletMotion> m_bulMotion;
   std::vector<BulletMetadata> m_bulMeta;
   std::uint32_t m_activeCount = 0;

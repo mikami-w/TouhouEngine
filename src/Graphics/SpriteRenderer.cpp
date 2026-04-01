@@ -91,7 +91,7 @@ void SpriteRenderer::end()
 }
 
 void SpriteRenderer::drawSprite(Texture* texture,
-                                Core::Position pos,
+                                Core::Vector2 pos,
                                 float angle,
                                 Core::Vector2 scale,
                                 Core::Vector4 uvRect,

@@ -5,7 +5,7 @@
 
 namespace Game {
 
-inline Entity::Entity(Core::Position position)
+inline Entity::Entity(Core::Vector2 position)
   : m_position(position)
 {
 }

@@ -8,7 +8,6 @@
 #include "Graphics/SpriteType.hpp"
 
 namespace Game {
-using Position = Core::Position; // 子弹位置, 以屏幕坐标 (像素) 表示
 
 struct BulletMetadata
 {
@@ -23,7 +22,7 @@ enum class BulletMotionType : std::uint8_t
 };
 
 template <typename T>
-concept SimpleMotion = requires(T motion, Position& pos) {
+concept SimpleMotion = requires(T motion, Core::Vector2& pos) {
   // 要求必须存在 updatePosition 成员函数，且接受 Position& 参数
   // 并且返回类型必须是 void (或者是能转换成 void 的，通常用 std::same_as<void> 约束)
   { motion.updatePosition(pos) } -> std::same_as<void>;
@@ -38,7 +37,7 @@ struct BulletMotionP
   float speed = 0;    // 速率, 每帧移动的像素数
   float tanAccel = 0; // 切向加速度, 每帧增加的速率
 
-  __forceinline void updatePosition(Position& pos) noexcept
+  __forceinline void updatePosition(Core::Vector2& pos) noexcept
   {
     // 半隐式欧拉积分: 先更新速度, 再更新位置
     angVel += angAccel;
@@ -55,7 +54,7 @@ struct BulletMotionR
   Core::Vector2 vel{};
   Core::Vector2 accel{};
 
-  __forceinline void updatePosition(Position& pos) noexcept
+  __forceinline void updatePosition(Core::Vector2& pos) noexcept
   {
     vel.x += accel.x;
     vel.y += accel.y;
@@ -67,7 +66,7 @@ struct BulletMotionR
 struct BulletView
 {
   BulletMotionType motionType = BulletMotionType::Polar;
-  Position* position = nullptr;
+  Core::Vector2* position = nullptr;
   BulletMetadata* metadata = nullptr;
   union
   {

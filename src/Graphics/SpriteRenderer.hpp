@@ -45,7 +45,7 @@ public:
 
   // pos 屏幕像素坐标, angle 弧度, scale 图像宽高像素大小
   void drawSprite(Texture* texture,
-                  Core::Position pos,
+                  Core::Vector2 pos,
                   float angle,
                   Core::Vector2 scale,
                   Core::Vector4 uvRect = { 0.0f, 0.0f, 1.0f, 1.0f }, // (u, v, width, height), 默认使用全图

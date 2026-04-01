@@ -3,12 +3,12 @@
 namespace Game::BulletEmitter {
 
 template <SimpleMotion BulletMotion>
-BulletHandle SpawnBullet(Position pos, BulletMotion motionModule, BulletMetadata metadata) noexcept
+BulletHandle SpawnBullet(Core::Vector2 pos, BulletMotion motionModule, BulletMetadata metadata) noexcept
 {
   return detail::g_bulletRouter->spawnBullet(pos, motionModule, metadata);
 }
 
-inline std::vector<BulletHandle> EmitRing(Position center,
+inline std::vector<BulletHandle> EmitRing(Core::Vector2 center,
                                           BulletMotionP firstMotionModule,
                                           BulletMetadata metadata,
                                           int count,

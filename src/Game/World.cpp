@@ -49,10 +49,10 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
 {
   namespace Math = Core::Math;
 
-  Core::Position center{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
+  Core::Vector2 center{ playAreaSettings.logicalWidth / 2.0f, playAreaSettings.logicalHeight / 2.0f };
   // 只执行一次, 在游戏区域边界生成一圈静止子弹; 生成中心发弹实体
   static auto const blackMagicHack_initSpawn_andReturnHandle = [&] {
-    Position pos{};
+    Core::Vector2 pos{};
     while (pos.y <= playAreaSettings.logicalHeight) {
       m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
       pos.x = playAreaSettings.logicalWidth;

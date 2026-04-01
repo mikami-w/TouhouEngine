@@ -28,7 +28,7 @@ TextureManager::TextureManager(DX11Device* device)
 
 void TextureManager::initTextures()
 {
-  loadTexture("yukari", "assets/textures/yukari.png");
+  loadTexture("tama_large", "assets/textures/tama_large.png");
   loadTexture("ascii", "assets/textures/ui/fonts/ascii.png");
 }
 

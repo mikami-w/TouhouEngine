@@ -12,43 +12,11 @@ class TextureManager;
 } // namespace Graphics
 
 namespace Game {
-namespace detail {
-template <typename MotionT>
-struct BulletMotionTypeSelector
-{};
 
-template <>
-struct BulletMotionTypeSelector<BulletMotionP>
-{
-  inline static constexpr BulletMotionType type = BulletMotionType::Polar;
-};
-
-template <>
-struct BulletMotionTypeSelector<BulletMotionR>
-{
-  inline static constexpr BulletMotionType type = BulletMotionType::Rectangular;
-};
-
-template <typename MotionT>
-inline constexpr BulletMotionType BULLET_MOTION_TYPE = BulletMotionTypeSelector<MotionT>::type;
-} // namespace detail
-
-struct BulletHandle
-{
-  Core::SAPHandleSystem::Handle handle{};
-  BulletMotionType type{};
-};
-
-template <SimpleMotion BulletMotion>
 class BulletManager
 {
 public:
-  struct BulletBuffer
-  {
-    Core::Vector2 const* bulPos = nullptr;
-    BulletMotion const* bulMotion = nullptr;
-    BulletMetadata const* bulMeta = nullptr;
-  };
+  using Handle = Core::SAPHandleSystem::Handle;
 
 public:
   BulletManager(std::size_t capacity);
@@ -60,30 +28,35 @@ public:
   BulletManager& operator=(BulletManager&&) = delete;
 
   // 创造一颗新子弹
-  BulletHandle spawnBullet(Core::Vector2 pos, BulletMotion const& bulletMotion, BulletMetadata meta) noexcept;
-  BulletView getBullet(BulletHandle handle) noexcept;
-  void cancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
+  Handle spawnBullet(Core::Vector2 pos, MotionModule const& bulletMotion, BulletMetadata meta) noexcept;
+  std::uint32_t getBulletIndex(Handle handle) noexcept { return m_handleSystem.toDataIndex(handle); }
+  void cancelBullet(Handle handle, bool spawnBonus = false) noexcept;
 
-  // 每帧调用, 更新位置并回收出界子弹
-  void update(float screenWidth, float screenHeight) noexcept;
+  void setMotionModule(Handle handle, MotionModule newMotion) noexcept;
+  void setPosition(Handle handle, Core::Vector2 pos) noexcept;
+  void setMetadata(Handle handle, BulletMetadata meta) noexcept;
 
-  // 遍历并绘制
-  void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const;
+
+  // 每帧调用
+  void update(float screenWidth, float screenHeight) noexcept; // 更新位置并回收出界子弹
+  void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const; // 遍历并绘制
 
   // 清空全屏子弹
   void clearBullets() noexcept;
 
-  // 获取有效子弹数据 buffer
-  BulletBuffer getActiveBullets() const noexcept;
   std::uint32_t getActiveCount() const noexcept { return m_activeCount; }
 
 private:
+  void updatePosition() noexcept;
+  void resize(std::uint32_t newCapacity) noexcept;
+  bool isBulletValid(std::uint32_t bulletIdx) noexcept { return bulletIdx < m_activeCount; }
+
+private:
   Core::SAPHandleSystem m_handleSystem;
-  std::vector<Core::Vector2> m_bulPos;
-  std::vector<BulletMotion> m_bulMotion;
+  PositionArray m_bulPos;
+  MotionArray_Polar m_bulMotionP;
+  MotionArray_Rectangular m_bulMotionR;
   std::vector<BulletMetadata> m_bulMeta;
   std::uint32_t m_activeCount = 0;
 };
 } // namespace Game
-
-#include "BulletManager.tpp"

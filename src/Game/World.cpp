@@ -4,6 +4,7 @@
 #include "BulletSystem.hpp"
 #include "Core/Logger.hpp"
 #include "Core/MathUtils.hpp"
+#include "Core/XSRandom.hpp"
 #include "Graphics/SpriteRenderer.hpp"
 #include "Graphics/TextureManager.hpp"
 
@@ -11,11 +12,11 @@ namespace Game {
 
 World::World(Graphics::TextureManager* textureManager)
   : m_textureManager(textureManager)
-  , m_bulletRouter(50000 - 5000)
+  , m_bulletManager(50000 - 5000)
   , m_entityManager(20000)
 {
-  BulletEmitter::detail::Init(&m_bulletRouter); // 依赖注入, 将 BulletRouter 的地址传递给 BulletEmitter
-  BulletSystem::detail::Init(&m_bulletRouter);  // 依赖注入, 将 BulletRouter 的地址传递给 BulletSystem
+  BulletEmitter::detail::Init(&m_bulletManager); // 依赖注入, 将 BulletRouter 的地址传递给 BulletEmitter
+  BulletSystem::detail::Init(&m_bulletManager);  // 依赖注入, 将 BulletRouter 的地址传递给 BulletSystem
   reset();
   LOG_INFO("World initialized.");
 }
@@ -23,7 +24,7 @@ World::World(Graphics::TextureManager* textureManager)
 void World::reset()
 {
   m_logicalFrame = 0;
-  m_bulletRouter.clearBullets();
+  m_bulletManager.clearBullets();
   m_entityManager.clearEntities();
   LOG_INFO("World reset: logical frame reset, bullets and entities cleared.");
 }
@@ -35,13 +36,13 @@ void World::update(Core::Config::PlayAreaSettings& playAreaSettings)
   _temp_logic_to_be_replaced(playAreaSettings); // 临时代码, 用于测试和演示, 之后会被正式游戏逻辑替换
 
   // 更新子弹位置, 并回收出界子弹
-  m_bulletRouter.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
+  m_bulletManager.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
   m_entityManager.update(playAreaSettings.logicalWidth, playAreaSettings.logicalHeight);
 }
 
 void World::draw(Graphics::SpriteRenderer* renderer) const
 {
-  m_bulletRouter.draw(renderer, m_textureManager);
+  m_bulletManager.draw(renderer, m_textureManager);
   m_entityManager.draw(renderer, m_textureManager);
 }
 
@@ -54,17 +55,17 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
   static auto const blackMagicHack_initSpawn_andReturnHandle = [&] {
     Core::Vector2 pos{};
     while (pos.y <= playAreaSettings.logicalHeight) {
-      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletManager.spawnBullet(pos, MotionModule{}, {});
       pos.x = playAreaSettings.logicalWidth;
-      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletManager.spawnBullet(pos, MotionModule{}, {});
       pos.y += 10.0f;
       pos.x = 0.0f;
     }
     pos = {};
     while (pos.x <= playAreaSettings.logicalWidth) {
-      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletManager.spawnBullet(pos, MotionModule{}, {});
       pos.y = playAreaSettings.logicalHeight;
-      m_bulletRouter.spawnBullet(pos, BulletMotionP{}, {});
+      m_bulletManager.spawnBullet(pos, MotionModule{}, {});
       pos.x += 10.0f;
       pos.y = 0.0f;
     }
@@ -74,7 +75,7 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
     return handle;
   }();
 
-  {
+  if (0) {
     // 实体句柄测试
     auto& entityHandle = blackMagicHack_initSpawn_andReturnHandle;
     if (auto e = m_entityManager.getEntity(entityHandle)) {
@@ -86,7 +87,7 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
     }
   }
 
-  {
+  if (1) {
     // 生成子弹测试-波与粒的境界
     static constexpr double spawnAngAccel = 0.001f;
     static double spawnAngle = 0.0f;
@@ -95,21 +96,29 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
     spawnAngle += spawnAngVel;
     static constexpr float speed = 8.0f;
 
-    BulletMotionP firstMotionModule;
-    firstMotionModule.angle = spawnAngle;
-    firstMotionModule.speed = speed;
+    MotionModule firstMotionModule;
+    firstMotionModule.polar.angle = spawnAngle;
+    firstMotionModule.polar.speed = speed;
 
-    static unsigned flag = 0;
     // 调高循环次数 (如 100) 用于压力测试或测试处理落机制
     for (int i = 0; i < 1; i++) {
-      auto handles = BulletEmitter::EmitRing(center, firstMotionModule, {}, 6, 0);
-      if (!(flag++ % 3)) {
-        m_bulletRouter.setMotionModule(
-          handles[0],
-          BulletMotionR{ { 4.0f, 0.0f },
-                         { 0.0f, 0.1f } }); // 测试修改动作模组, 把第一颗子弹改成矩形运动, 其他保持极坐标运动
-        m_bulletRouter.setMotionModule(handles[3], BulletMotionR{ { -4.0f, 0.0f }, { 0.0f, 0.1f } });
-      }
+      BulletEmitter::EmitFan(center, firstMotionModule, {}, 3, 50);
+    }
+  }
+
+  if (1) {
+    // 生成子弹测试-运动叠加
+    static Math::XSRandom rand(42); // 随机数生成器
+    if (m_logicalFrame % 13 == 0) {
+      Core::Vector2 emitPoint = center;
+      emitPoint.x = center.x + rand.rangedFloat(-50.0f, 50.0f); // 在中心附近随机水平位置发射
+      emitPoint.y = center.y + rand.rangedFloat(-50.0f, 50.0f);
+      MotionModule motionModule{
+        .polar = { .angle = 0.0f, .angVel = 0.01f, .angAccel = 0.0f, .speed = 1.0f, .tanAccel = 0.0f },
+        .rect = { 3.0f * (-1.0f + rand.nextBoolean() * 2), 0.0f, 0.0f, 0.1f }
+      };
+
+      BulletEmitter::EmitRing(center, motionModule, {}, 16, 100.0f);
     }
   }
 }

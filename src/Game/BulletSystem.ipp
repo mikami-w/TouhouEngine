@@ -1,33 +1,27 @@
 namespace Game::BulletSystem {
 
-inline BulletView GetBullet(BulletHandle handle)
+inline void CancelBullet(BulletManager::Handle handle, bool spawnBonus) noexcept
 {
-  return detail::g_bulletRouter->getBullet(handle);
+  detail::g_bulletManager->cancelBullet(handle, spawnBonus);
 }
 
-inline void CancelBullet(BulletHandle handle, bool spawnBonus) noexcept
+inline void SetMotionModule(BulletManager::Handle handle, MotionModule newMotion) noexcept
 {
-  detail::g_bulletRouter->cancelBullet(handle, spawnBonus);
+  detail::g_bulletManager->setMotionModule(handle, newMotion);
 }
 
-template <SimpleMotion BulletMotion>
-void SetMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept
+inline void SetPosition(BulletManager::Handle handle, Core::Vector2 pos) noexcept
 {
-  detail::g_bulletRouter->setMotionModule(handle, newMotion);
+  detail::g_bulletManager->setPosition(handle, pos);
 }
 
-inline void SetPosition(BulletHandle handle, Core::Vector2 pos) noexcept
+inline void SetMetadata(BulletManager::Handle handle, BulletMetadata meta) noexcept
 {
-  *GetBullet(handle).position = pos;
-}
-
-inline void SetMetadata(BulletHandle handle, BulletMetadata meta) noexcept
-{
-  *GetBullet(handle).metadata = meta;
+  detail::g_bulletManager->setMetadata(handle, meta);
 }
 
 inline void ClearBullets() noexcept
 {
-  detail::g_bulletRouter->clearBullets();
+  detail::g_bulletManager->clearBullets();
 }
 } // namespace Game::BulletSystem

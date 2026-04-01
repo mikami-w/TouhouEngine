@@ -1,29 +1,25 @@
 #pragma once
 
 #include "Bullet.hpp"
-#include "BulletRouter.hpp"
+#include "BulletManager.hpp"
 
 namespace Game::BulletSystem {
 namespace detail {
-inline BulletRouter* g_bulletRouter = nullptr; // 不持有资源, 仅观察
+inline BulletManager* g_bulletManager = nullptr; // 不持有资源, 仅观察
 
-inline void Init(BulletRouter* bulletRouter) noexcept
+inline void Init(BulletManager* bulletManager) noexcept
 {
-  g_bulletRouter = bulletRouter;
+  g_bulletManager = bulletManager;
 }
 } // namespace detail
 
-// TODO: 不再暴露BulletView, 不让它活到下一条指令, 防止野指针的误用
-BulletView GetBullet(BulletHandle handle);
+void CancelBullet(BulletManager::Handle handle, bool spawnBonus = false) noexcept;
 
-void CancelBullet(BulletHandle handle, bool spawnBonus = false) noexcept;
+void SetMotionModule(BulletManager::Handle handle, MotionModule newMotion) noexcept;
+void SetPosition(BulletManager::Handle handle, Core::Vector2 pos) noexcept;
+void SetMetadata(BulletManager::Handle handle, BulletMetadata meta) noexcept;
 
-template <SimpleMotion BulletMotion>
-void SetMotionModule(BulletHandle& handle, BulletMotion newMotion) noexcept;
-
-void SetPosition(BulletHandle handle, Core::Vector2 pos) noexcept;
-
-void SetMetadata(BulletHandle handle, BulletMetadata meta) noexcept;
+// TODO: getters
 
 void ClearBullets() noexcept;
 

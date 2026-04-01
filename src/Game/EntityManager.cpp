@@ -3,7 +3,9 @@
 #include <vector>
 
 #include "Core/Logger.hpp"
+#include "Graphics/SpriteRenderer.hpp"
 #include "Graphics/Texture.hpp"
+#include "Graphics/TextureManager.hpp"
 
 namespace Game {
 
@@ -81,10 +83,10 @@ void EntityManager::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager*
   auto entities = getActiveEntities();
 
   // 暂时复用八云紫的贴图
-  auto yukari = tm->getTexture("yukari");
+  auto tama_large = tm->getTexture("tama_large");
 
   for (std::uint32_t i = 0; i < m_activeCount; ++i) {
-    sr->drawSprite(yukari, entities[i].getPosition(), 0.0f, { yukari->getWidth() / 4.0f, yukari->getHeight() / 4.0f });
+    sr->drawSprite(tama_large, entities[i].getPosition(), 0.0f, { tama_large->getWidth() / 4.0f, tama_large->getHeight() / 4.0f });
   }
 }
 

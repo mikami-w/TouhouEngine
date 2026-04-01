@@ -1,24 +1,24 @@
 #pragma once
 
 #include "Bullet.hpp"
-#include "BulletRouter.hpp"
+#include "BulletManager.hpp"
 #include "Core/BasicTypes.hpp"
 
 namespace Game::BulletEmitter {
 namespace detail {
-inline BulletRouter* g_bulletRouter = nullptr; // 不持有资源, 仅观察
+inline BulletManager* g_bulletManager = nullptr; // 不持有资源, 仅观察
 
-inline void Init(BulletRouter* bulletRouter) noexcept
+inline void Init(BulletManager* bulletManager) noexcept
 {
-  g_bulletRouter = bulletRouter;
+  g_bulletManager = bulletManager;
 }
 } // namespace detail
 
-template <SimpleMotion BulletMotion>
-BulletHandle SpawnBullet(Core::Vector2 pos, BulletMotion motionModule, BulletMetadata metadata) noexcept;
+BulletManager::Handle SpawnBullet(Core::Vector2 pos, MotionModule motionModule, BulletMetadata metadata) noexcept;
 
-std::vector<BulletHandle> EmitRing(Core::Vector2 center, BulletMotionP firstMotionModule, int count, float radius);
+void EmitRing(Core::Vector2 center, MotionModule firstMotionModule, BulletMetadata metadata, int count, float radius);
 
+void EmitFan(Core::Vector2 center, MotionModule firstMotionModule, BulletMetadata metadata, int count, float radius);
 // 更多发射方式待拓展
 } // namespace Game::BulletEmitter
 

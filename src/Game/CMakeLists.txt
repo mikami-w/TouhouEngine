@@ -1,6 +1,6 @@
 set(GAME_SOURCES
         Bullet.hpp
-        BulletManager.tpp
+        BulletManager.cpp
         BulletManager.hpp
         BulletEmitter.ipp
         BulletEmitter.hpp
@@ -10,8 +10,6 @@ set(GAME_SOURCES
         EntityManager.hpp
         Entity.ipp
         Entity.hpp
-        BulletRouter.ipp
-        BulletRouter.hpp
         BulletSystem.ipp
         BulletSystem.hpp
 )

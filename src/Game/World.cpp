@@ -87,7 +87,7 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
     }
   }
 
-  if (1) {
+  if (0) {
     // 生成子弹测试-波与粒的境界
     static constexpr double spawnAngAccel = 0.001f;
     static double spawnAngle = 0.0f;
@@ -114,7 +114,7 @@ void World::_temp_logic_to_be_replaced(Core::Config::PlayAreaSettings& playAreaS
       emitPoint.x = center.x + rand.rangedFloat(-50.0f, 50.0f); // 在中心附近随机水平位置发射
       emitPoint.y = center.y + rand.rangedFloat(-50.0f, 50.0f);
       MotionModule motionModule{
-        .polar = { .angle = 0.0f, .angVel = 0.01f, .angAccel = 0.0f, .speed = 1.0f, .tanAccel = 0.0f },
+        .polar = { .angle = 0.0f, .angVel = 0.1f, .angAccel = 0.0f, .speed = 10.0f, .tanAccel = 0.0f },
         .rect = { 3.0f * (-1.0f + rand.nextBoolean() * 2), 0.0f, 0.0f, 0.1f }
       };
 

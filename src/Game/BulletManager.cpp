@@ -152,17 +152,25 @@ void BulletManager::updatePosition() noexcept
 
 #pragma omp simd
   for (std::uint32_t i = 0; i < m_activeCount; ++i) {
-    // 半隐式欧拉积分: 先更新速度, 再更新位置
-    // 更新速度
+    // 中点角度法 (Midpoint Angle Integration)
+    // 记录旧角度 (为了计算中点)
+    float oldAng = pAng[i];
+
+    // 更新速度与角度 (维持半隐式欧拉)
     pAngVel[i] += pAngAccel[i];
-    pAng[i] += pAngVel[i];
+    pAng[i] += pAngVel[i]; // 此时 pAng[i] 已经是 theta_1 了
     pTanSpd[i] += pTanAccel[i];
     pVelX[i] += pAccelX[i];
     pVelY[i] += pAccelY[i];
 
-    // 更新位置
-    px[i] += pTanSpd[i] * Math::cos(pAng[i]) + pVelX[i];
-    py[i] += pTanSpd[i] * Math::sin(pAng[i]) + pVelY[i];
+    // 计算中点角度
+    // 中点角度 theta_mid = (oldAng + pAng[i]) * 0.5f
+    // 也可以写成：theta_mid = oldAng + pAngVel[i] * 0.5f;
+    float midAng = oldAng + pAngVel[i] * 0.5f;
+
+    // 使用中点角度更新位置
+    px[i] += pTanSpd[i] * Math::cos(midAng) + pVelX[i];
+    py[i] += pTanSpd[i] * Math::sin(midAng) + pVelY[i];
   }
 }
 

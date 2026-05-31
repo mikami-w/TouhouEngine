@@ -12,6 +12,8 @@
 #include <thread>
 #include <utility>
 
+#include "Utility.hpp"
+
 namespace Core {
 class Logger
 {
@@ -47,7 +49,7 @@ public:
   template <auto VLogLevel>
   void log(std::string_view message)
   {
-    std::string logMsg = std::format("{} [{}] {}\n", getCurrentTime(), getEnumName<VLogLevel>(), message);
+    std::string logMsg = std::format("{} [{}] {}\n", getCurrentTime(), getLogLevel<VLogLevel>(), message);
     {
       std::lock_guard<std::mutex> lock(m_mutex);
       m_logFrontBuffer.emplace_back(std::move(logMsg));
@@ -107,16 +109,10 @@ private:
   }
 
   template <auto V>
-  static constexpr std::string_view getEnumName() noexcept
+  static constexpr std::string_view getLogLevel() noexcept
   {
-    constexpr std::string_view sig = __FUNCSIG__;
-    constexpr std::string_view prefix = "<Core::Logger::LogLevel::";
-    constexpr std::string_view suffix = "_>(void) noexcept";
-
-    std::size_t start = sig.find(prefix) + prefix.size();
-    std::size_t end = sig.rfind(suffix);
-
-    return sig.substr(start, end - start);
+    constexpr std::string_view prefix = "Core::Logger::LogLevel::";
+    return GetEnumName<V>().substr(prefix.size());
   }
 
   static std::string getCurrentTime() noexcept
@@ -128,7 +124,7 @@ private:
     std::time_t const now_time_t = system_clock::to_time_t(now);
 
     std::tm now_tm{};
-    localtime_s(&now_tm, &now_time_t);
+    LocaltimeP(&now_tm, &now_time_t);
 
     return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
                        now_tm.tm_year + 1900,

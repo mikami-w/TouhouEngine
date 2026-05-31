@@ -1,12 +1,21 @@
 #include "TextureManager.hpp"
 
-#pragma warning(push)
-#pragma warning(disable : 4244) // 关闭隐式类型转换警告
-#pragma warning(disable : 4702) // 关闭不可达代码警告
+#if defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable: 4244 4702)
+#elif defined(__GNUC__) || defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wconversion"
+  #pragma GCC diagnostic ignored "-Wunreachable-code"
+#endif
 
 #include <jsonpp/jsonpp.hpp>
 
-#pragma warning(pop)
+#if defined(_MSC_VER)
+  #pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
 
 #include "Core/Logger.hpp"
 #include "DX11Device.hpp"

@@ -2,13 +2,22 @@
 
 #include <fstream>
 
-#pragma warning(push)
-#pragma warning(disable : 4244) // 关闭隐式类型转换警告
-#pragma warning(disable : 4702) // 关闭不可达代码警告
+#if defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable: 4244 4702)
+#elif defined(__GNUC__) || defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wconversion"
+  #pragma GCC diagnostic ignored "-Wunreachable-code"
+#endif
 
 #include <jsonpp/jsonpp.hpp>
 
-#pragma warning(pop)
+#if defined(_MSC_VER)
+  #pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
 
 #include "Logger.hpp"
 
@@ -33,8 +42,10 @@ bool ConfigManager::loadFromJson(std::string const& filePath)
   try {
     auto root = json::parse(file);
 
-#pragma warning(push)
-#pragma warning(disable : 4244) // 关闭隐式类型转换警告
+#if defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable : 4244) // 关闭隐式类型转换警告
+#endif
     if (root.contains("Window")) {
       auto const& windowCfg = root["Window"];
 
@@ -66,7 +77,9 @@ bool ConfigManager::loadFromJson(std::string const& filePath)
       m_settings.debug.showFPS = debugCfg["showFPS"].as_bool();
       m_settings.debug.showHitbox = debugCfg["showHitbox"].as_bool();
     }
-#pragma warning(pop)
+#if defined(_MSC_VER)
+  #pragma warning(pop)
+#endif
     LOG_INFO("Configuration loaded successfully from JSON.");
     return true;
   } catch (jsonpp::JsonParseError& e) {

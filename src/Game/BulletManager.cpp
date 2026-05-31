@@ -136,19 +136,19 @@ void BulletManager::updatePosition() noexcept
 {
   namespace Math = Core::Math;
 
-  float* __restrict px = m_bulPos.x.data();
-  float* __restrict py = m_bulPos.y.data();
+  float* RESTRICT px = m_bulPos.x.data();
+  float* RESTRICT py = m_bulPos.y.data();
 
-  float* __restrict pAng = m_bulMotionP.angle.data();
-  float* __restrict pAngVel = m_bulMotionP.angVel.data();
-  float* __restrict pAngAccel = m_bulMotionP.angAccel.data();
-  float* __restrict pTanSpd = m_bulMotionP.speed.data();
-  float* __restrict pTanAccel = m_bulMotionP.tanAccel.data();
+  float* RESTRICT pAng = m_bulMotionP.angle.data();
+  float* RESTRICT pAngVel = m_bulMotionP.angVel.data();
+  float* RESTRICT pAngAccel = m_bulMotionP.angAccel.data();
+  float* RESTRICT pTanSpd = m_bulMotionP.speed.data();
+  float* RESTRICT pTanAccel = m_bulMotionP.tanAccel.data();
 
-  float* __restrict pVelX = m_bulMotionR.vel_x.data();
-  float* __restrict pVelY = m_bulMotionR.vel_y.data();
-  float* __restrict pAccelX = m_bulMotionR.accel_x.data();
-  float* __restrict pAccelY = m_bulMotionR.accel_y.data();
+  float* RESTRICT pVelX = m_bulMotionR.vel_x.data();
+  float* RESTRICT pVelY = m_bulMotionR.vel_y.data();
+  float* RESTRICT pAccelX = m_bulMotionR.accel_x.data();
+  float* RESTRICT pAccelY = m_bulMotionR.accel_y.data();
 
 #pragma omp simd
   for (std::uint32_t i = 0; i < m_activeCount; ++i) {

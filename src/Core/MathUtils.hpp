@@ -12,8 +12,6 @@
 #include <cmath>
 #include <numbers>
 
-#include "Core/Logger.hpp"
-
 namespace Core::Math {
 constexpr float PI2_f = std::numbers::pi_v<float> * 2.0f;          // 360 degree
 constexpr float PI_f = std::numbers::pi_v<float>;                  // 180 degree
@@ -42,7 +40,7 @@ alignas(64) inline static std::array<float, 513> const sinTable = []() {
 }();
 
 // 将 [0, 2048) 范围的索引折叠到 512 范围并处理函数值符号
-__forceinline float sinIndexMapping(int fullIndex) noexcept
+FORCEINLINE float sinIndexMapping(int fullIndex) noexcept
 {
   // 处理半周镜像, 将 [0, 1023] 映射到 [0, 512, 0]
   int diff = (fullIndex & 1023) - 512; // (fullIndex & 1023) 是 [0, 1023] 范围内的半周索引
@@ -64,7 +62,7 @@ __forceinline float sinIndexMapping(int fullIndex) noexcept
 }
 
 // atan 的多项式近似, 适用于 z = y/x 在 [0, 1] 范围内的情况
-__forceinline constexpr float atanApprox_01(float z) noexcept
+FORCEINLINE constexpr float atanApprox_01(float z) noexcept
 {
   // 霍纳法则: ((c3 * z^2 + c2) * z^2 + c1) * z^3 + z
   float const z2 = z * z;
@@ -74,55 +72,55 @@ __forceinline constexpr float atanApprox_01(float z) noexcept
 
 // 简单函数/有硬件优化的函数
 template <typename T>
-__forceinline constexpr T min(T a, T b) noexcept
+FORCEINLINE constexpr T min(T a, T b) noexcept
 {
   return std::min(a, b);
 }
 
 template <typename T>
-__forceinline constexpr T max(T a, T b) noexcept
+FORCEINLINE constexpr T max(T a, T b) noexcept
 {
   return std::max(a, b);
 }
 
 template <typename T>
-__forceinline T abs(T x) noexcept
+FORCEINLINE T abs(T x) noexcept
 {
   return std::abs(x);
 }
 
 template <typename T>
-__forceinline T ceil(T x) noexcept
+FORCEINLINE T ceil(T x) noexcept
 {
   return std::ceil(x);
 }
 
 template <typename T>
-__forceinline T floor(T x) noexcept
+FORCEINLINE T floor(T x) noexcept
 {
   return std::floor(x);
 }
 
 template <typename T>
-__forceinline T trunc(T x) noexcept
+FORCEINLINE T trunc(T x) noexcept
 {
   return std::trunc(x);
 }
 
 template <typename T>
-__forceinline T round(T x) noexcept
+FORCEINLINE T round(T x) noexcept
 {
   return std::round(x);
 }
 
 template <typename T>
-__forceinline T fmod(T x, T y) noexcept
+FORCEINLINE T fmod(T x, T y) noexcept
 {
   return std::fmod(x, y);
 }
 
 // 三角/反三角函数
-__forceinline float sin(float radians) noexcept
+FORCEINLINE float sin(float radians) noexcept
 {
   // 将角度转换为 [0, 2048) 范围内的索引
   // 2047 = 0x7FF = 0b111'1111'1111, 处理负数和大于 2pi 的情况
@@ -130,14 +128,14 @@ __forceinline float sin(float radians) noexcept
   return details::sinIndexMapping(index);
 }
 
-__forceinline float cos(float radians) noexcept
+FORCEINLINE float cos(float radians) noexcept
 {
   // cos(x) = sin(x + pi/2). 在 2048 长度的表中，pi/2 偏移量是 512
   int index = static_cast<int>(std::floor(radians * details::RadToIndex + 512.0f)) & 2047;
   return details::sinIndexMapping(index);
 }
 
-__forceinline float atan2(float y, float x)
+FORCEINLINE float atan2(float y, float x)
 {
   float ax = std::abs(x);
   float ay = std::abs(y);
@@ -162,11 +160,7 @@ __forceinline float atan2(float y, float x)
 
 inline void initMathUtils()
 {
-  LOG_INFO("Initializing MathUtils...");
-
   // 触发 sinTable 的初始化
   (void)details::sinTable;
-
-  LOG_INFO("MathUtils initialized.");
 }
 } // namespace Core::Math

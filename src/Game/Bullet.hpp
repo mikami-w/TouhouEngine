@@ -59,7 +59,7 @@ struct PositionArray
   {
   }
 
-  __forceinline void moveTo(std::uint32_t srcIdx, std::uint32_t desIdx) noexcept
+  FORCEINLINE void moveTo(std::uint32_t srcIdx, std::uint32_t desIdx) noexcept
   {
     x[desIdx] = x[srcIdx];
     y[desIdx] = y[srcIdx];
@@ -96,7 +96,7 @@ struct MotionArray_Polar
   {
   }
 
-  __forceinline void moveTo(std::uint32_t srcIdx, std::uint32_t desIdx) noexcept
+  FORCEINLINE void moveTo(std::uint32_t srcIdx, std::uint32_t desIdx) noexcept
   {
     angle[desIdx] = angle[srcIdx];
     angVel[desIdx] = angVel[srcIdx];
@@ -140,7 +140,7 @@ struct MotionArray_Rectangular
   {
   }
 
-  __forceinline void moveTo(std::uint32_t src, std::uint32_t des) noexcept
+  FORCEINLINE void moveTo(std::uint32_t src, std::uint32_t des) noexcept
   {
     vel_x[des] = vel_x[src];
     vel_y[des] = vel_y[src];

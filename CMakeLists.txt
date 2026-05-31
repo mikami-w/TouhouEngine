@@ -1,14 +1,6 @@
 cmake_minimum_required(VERSION 4.0)
 project(TouhouEngine)
 
-# 检查是否使用 MSVC 编译器
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    message(FATAL_ERROR
-            "此项目仅支持 Microsoft Visual C++ (MSVC) 编译器.\n"
-            "检测到的编译器: ${CMAKE_CXX_COMPILER_ID} (${CMAKE_CXX_COMPILER})\n"
-    )
-endif()
-
 # ===== 链接时优化 (LTO/IPO) 设置 =====
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
@@ -33,14 +25,18 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib) # 设置静态库(.a
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib) # 设置动态库(.so/.dylib)输出目录
 
 # ===== Compiler Options =====
-add_compile_options(/W4 /permissive- /Zc:__cplusplus /utf-8 /arch:AVX2)
-add_compile_definitions(
-        UNICODE
-        _UNICODE
-        _CRT_SECURE_NO_WARNINGS
-        NOMINMAX
-        WIN32_LEAN_AND_MEAN
-)
+if(MSVC)
+    add_compile_options(/W4 /permissive- /Zc:__cplusplus /utf-8 /arch:AVX2)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    add_compile_options(-Wall -Wextra -Wpedantic -mavx2 -fopenmp-simd)
+endif()
+
+if(WIN32)
+    add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+    if(MSVC)
+        add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    endif()
+endif()
 
 # ===== Build Targets =====
 add_subdirectory(src)

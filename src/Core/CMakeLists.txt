@@ -28,5 +28,5 @@ target_link_libraries(Core
         PUBLIC ProjectPCH
         PUBLIC d3d11
         PUBLIC winmm
-        PRIVATE Vendor
+        PRIVATE jsonpp
 )

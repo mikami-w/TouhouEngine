@@ -8,8 +8,7 @@
 .rooignore
 AGENTS.md
 
-CHORES
-ResourceUnused
+**/*.ignore
 
 build
 cmake-build*

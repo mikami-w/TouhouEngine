@@ -23,7 +23,7 @@ target_include_directories(Graphics PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Graphics
         PUBLIC ProjectPCH
         PUBLIC d3d11 d3dcompiler dxgi
-        PRIVATE Vendor
+        PRIVATE stb
         PRIVATE Core
 )
 

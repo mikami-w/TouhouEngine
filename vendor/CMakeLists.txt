@@ -1,7 +1,3 @@
-add_library(Vendor STATIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/stb/stb_impl.cpp
-)
-
-target_include_directories(Vendor PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-)
+add_subdirectory(stb)
+add_subdirectory(jsonpp)
+add_subdirectory(SDL)

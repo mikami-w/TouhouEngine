@@ -1,3 +1,6 @@
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h> // 必须且只能在一个 .cpp 中 include, SDL 会自动提供平台入口点 (WinMain 等)
+
 #include "Core/Application.hpp"
 #include "Core/ConfigManager.hpp"
 #include "Core/Logger.hpp"
@@ -123,7 +126,7 @@ int main(int argc, char* argv[])
 
   try {
     if (initialize(argc, argv) == 1) {
-      return 0; // 已处理参数且无需启动主程序, 直接退出
+      return 0;
     }
 
     Core::Application app{ Core::Config::ConfigManager::getInstance().getSettings() };

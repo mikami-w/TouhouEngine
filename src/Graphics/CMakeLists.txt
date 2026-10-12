@@ -1,8 +1,9 @@
 set(GRAPHICS_SOURCES
-        DX11Device.cpp
-        DX11Device.hpp
-        Shader.cpp
-        Shader.hpp
+        GFXDevice.cpp
+        GFXDevice.hpp
+        GPUResourceManager.hpp
+        ShaderLoader.cpp
+        ShaderLoader.hpp
         Vertex.hpp
         SpriteRenderer.cpp
         SpriteRenderer.hpp
@@ -22,7 +23,7 @@ target_include_directories(Graphics PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(Graphics
         PUBLIC ProjectPCH
-        PUBLIC d3d11 d3dcompiler dxgi
+        PUBLIC SDL3::SDL3
         PRIVATE stb
         PRIVATE Core
 )

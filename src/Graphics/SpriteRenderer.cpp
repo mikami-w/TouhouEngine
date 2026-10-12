@@ -1,28 +1,32 @@
 #include "SpriteRenderer.hpp"
 
+#include <cstring>
+#include <filesystem>
+
 #include "Core/Logger.hpp"
-#include "DX11Device.hpp"
+#include "GFXDevice.hpp"
+#include "ShaderLoader.hpp"
 #include "Texture.hpp"
-#include "Vertex.hpp"
 
 namespace Graphics {
 
-SpriteRenderer::SpriteRenderer(DX11Device* device)
-  : m_device(device)
+SpriteRenderer::SpriteRenderer(GFXDevice* gfx)
+  : m_gfx(gfx)
 {
-  if (!m_device || !(m_device->getDevice())) {
-    LOG_ERROR("Null DX11Device passed to SpriteRenderer.");
-    throw std::invalid_argument("DX11Device is null.");
+  if (!m_gfx || !m_gfx->getDevice()) {
+    LOG_ERROR("Null GFXDevice passed to SpriteRenderer.");
+    throw std::invalid_argument("GFXDevice is null.");
   }
 }
 
-void SpriteRenderer::initialize()
+void SpriteRenderer::initialize(SDL_Window* window)
 {
   LOG_INFO("Initializing SpriteRenderer Pipeline...");
 
-  initShaders();
+  initShaders(window);
+  initPipeline(window);
   initBuffers();
-  initStates();
+  initSampler();
   m_instances.reserve(m_maxInstances);
 
   LOG_INFO("SpriteRenderer Pipeline initialized successfully.");
@@ -30,64 +34,102 @@ void SpriteRenderer::initialize()
 
 void SpriteRenderer::setView(float screenX, float screenY, float screenW, float screenH, float logicalW, float logicalH)
 {
-  flush(); // 切换视口前先把当前积累的实例发走, 避免被错误地渲染到新的视口里
+  flush(); // 切换视口前先把当前积累的实例发走
 
-  auto context = m_device->getContext();
-
-  // 设置新的视口
-  D3D11_VIEWPORT vp{};
-  vp.TopLeftX = screenX;
-  vp.TopLeftY = screenY;
-  vp.Width = screenW;
-  vp.Height = screenH;
-  vp.MinDepth = 0.0f;
-  vp.MaxDepth = 1.0f;
-  context->RSSetViewports(1, &vp);
+  m_viewX = screenX;
+  m_viewY = screenY;
+  m_viewW = screenW;
+  m_viewH = screenH;
 
   // 内部逻辑坐标系
   float lw = (logicalW < 0.0f) ? screenW : logicalW;
   float lh = (logicalH < 0.0f) ? screenH : logicalH;
 
-  DirectX::XMMATRIX orthoMatrix = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, lw, lh, 0.0f, 0.0f, 1.0f);
-  DirectX::XMStoreFloat4x4(&m_projectionMatrix, DirectX::XMMatrixTranspose(orthoMatrix));
+  // 构建正交投影矩阵 (行主序, 与 HLSL mul(vector, matrix) 匹配)
+  float r = lw, l = 0.0f, t = 0.0f, b = lh, n = 0.0f, f = 1.0f;
+  std::memset(m_projectionMatrix, 0, sizeof(m_projectionMatrix));
+  m_projectionMatrix[0] = 2.0f / (r - l);
+  m_projectionMatrix[5] = 2.0f / (t - b);
+  m_projectionMatrix[10] = 1.0f / (f - n);
+  m_projectionMatrix[12] = (l + r) / (l - r);
+  m_projectionMatrix[13] = (t + b) / (b - t);
+  m_projectionMatrix[14] = n / (n - f);
+  m_projectionMatrix[15] = 1.0f;
+}
 
-  // 将新矩阵立刻推送到常量缓冲区, 供接下来的 Shader 使用
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  HRESULT hr = context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-  LOG_DX11_CHECK(hr, "Failed to map Constant Buffer.");
-  TransformCBuffer* dataPtr = (TransformCBuffer*)mappedResource.pData;
-  dataPtr->projection = m_projectionMatrix;
-  context->Unmap(m_constantBuffer.Get(), 0);
+void SpriteRenderer::beginFrame(SDL_Window* window)
+{
+  // 1. 获取 command buffer
+  m_cmd = SDL_AcquireGPUCommandBuffer(m_gfx->getDevice());
+  if (!m_cmd) {
+    LOG_ERROR(std::format("SDL_AcquireGPUCommandBuffer failed: {}", SDL_GetError()));
+    return;
+  }
+
+  // 2. 获取 swapchain texture
+  auto swapchain = m_gfx->acquireSwapchain(m_cmd, window);
+  m_swapchainTexture = swapchain.texture;
+  m_swapchainWidth = swapchain.width;
+  m_swapchainHeight = swapchain.height;
+
+  if (!m_swapchainTexture) {
+    // 窗口最小化等, 无法渲染
+    SDL_SubmitGPUCommandBuffer(m_cmd);
+    m_cmd = nullptr;
+    return;
+  }
+
+  // 3. 开始 render pass (清屏黑色)
+  SDL_GPUColorTargetInfo colorTarget{};
+  colorTarget.texture = m_swapchainTexture;
+  colorTarget.clear_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+  colorTarget.load_op = SDL_GPU_LOADOP_CLEAR;
+  colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+
+  m_renderPass = SDL_BeginGPURenderPass(m_cmd, &colorTarget, 1, nullptr);
 }
 
 void SpriteRenderer::begin()
 {
-  // 开始新的一帧, 清空实例数据和当前绑定的贴图
   m_instances.clear();
   m_currentTexture = nullptr;
 
-  auto context = m_device->getContext();
+  if (!m_renderPass || !m_cmd) {
+    return;
+  }
 
-  // 将状态绑定到渲染管线
-  m_inputLayout->Bind(context);
-  m_vertexShader->Bind(context);
-  m_pixelShader->Bind(context);
-  // 绑定光栅化状态
-  context->RSSetState(m_rasterizerState.Get());
-  // 把采样器绑定到像素着色器 (PS) 的第 0 号槽位
-  context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-  // 绑定混合状态, nullptr 表示不使用混合因子常量, 0xffffffff 表示所有多重采样遮罩全开
-  context->OMSetBlendState(m_blendState.Get(), nullptr, 0xffffffff);
-  // 拓扑结构: 告诉 GPU 传来的是一系列三角形
-  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  // 绑定管线 (PSO: 所有状态一次绑定)
+  SDL_BindGPUGraphicsPipeline(m_renderPass, m_pipeline.get());
 
-  // 绑定常量缓冲区到顶点着色器
-  context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+  // 设置视口
+  SDL_GPUViewport viewport{};
+  viewport.x = m_viewX;
+  viewport.y = m_viewY;
+  viewport.w = m_viewW;
+  viewport.h = m_viewH;
+  viewport.min_depth = 0.0f;
+  viewport.max_depth = 1.0f;
+  SDL_SetGPUViewport(m_renderPass, &viewport);
+
+  // 推送投影矩阵 uniform
+  SDL_PushGPUVertexUniformData(m_cmd, 0, m_projectionMatrix, sizeof(m_projectionMatrix));
 }
 
 void SpriteRenderer::end()
 {
   flush();
+}
+
+void SpriteRenderer::endFrame()
+{
+  if (m_renderPass) {
+    SDL_EndGPURenderPass(m_renderPass);
+    m_renderPass = nullptr;
+  }
+  if (m_cmd) {
+    SDL_SubmitGPUCommandBuffer(m_cmd);
+    m_cmd = nullptr;
+  }
 }
 
 void SpriteRenderer::drawSprite(Texture* texture,
@@ -101,13 +143,11 @@ void SpriteRenderer::drawSprite(Texture* texture,
     return;
   }
 
-  // 核心批处理逻辑: 如果我们换了一张贴图, 或者 m_instances 已经塞满了, 立刻把现有的货物发走 (flush)，然后再装新货
   if (texture != m_currentTexture || m_instances.size() >= m_maxInstances) {
     flush();
     m_currentTexture = texture;
   }
 
-  // 悄悄把数据塞进 vector, 先不呼叫 GPU
   m_instances.emplace_back(pos, scale, angle, uvRect, color);
 }
 
@@ -115,233 +155,366 @@ void SpriteRenderer::drawText(Texture* texture,
                               std::string const& text,
                               Core::Vector2 start,
                               float scale,
-                              DirectX::XMFLOAT4 color)
+                              Core::Vector4 color)
 {
   if (!texture) {
     return;
   }
 
-  // 图集参数
-  constexpr int cols = 16;              // 字符贴图是 16 列的网格
-  constexpr float uvStep = 1.0f / cols; // 每个字符占 UV 空间的大小
+  constexpr int cols = 16;
+  constexpr float uvStep = 1.0f / cols;
 
-  // 渲染参数
-  float const quadSize = 32.0f * scale; // 每个字符的屏幕大小 (像素)
-  float const advanceX = 16.0f * scale; // 每个字符的水平间距 (像素)
+  float const quadSize = 32.0f * scale;
+  float const advanceX = 16.0f * scale;
 
   float cursorX = start.x;
 
   for (char c : text) {
-    // 只处理标准可见 ASCII 字符 (空格 32 到 ~ 126)
     if (c >= ' ' && c <= '~') {
-      int index = c - ' '; // 计算字符在图集中的索引
+      int index = c - ' ';
       int row = index / cols;
       int col = index % cols;
 
-      DirectX::XMFLOAT4 uvRect = {
-        col * uvStep, // u 起点
-        row * uvStep, // v 起点
-        uvStep,       // u 宽度
-        uvStep        // v 高度
+      Core::Vector4 uvRect = {
+        col * uvStep,
+        row * uvStep,
+        uvStep,
+        uvStep
       };
 
       drawSprite(texture, { cursorX, start.y }, 0.0f, { quadSize, quadSize }, uvRect, color);
     }
 
-    // 光标右移
     cursorX += advanceX;
   }
 }
 
-void SpriteRenderer::initShaders()
+void SpriteRenderer::initShaders(SDL_Window* /*window*/)
 {
-  // 检测文件是否存在
-  std::filesystem::path shaderPath = std::filesystem::current_path() / "assets/shaders/Sprite.hlsl";
-  if (!std::filesystem::exists(shaderPath)) {
-    LOG_ERROR("Shader file missing: " + shaderPath.string());
-    throw std::runtime_error("Shader file missing.");
+  auto* device = m_gfx->getDevice();
+  std::string shaderPath = (std::filesystem::current_path() / "assets/shaders/compiled").string();
+
+  // 顶点着色器: 1 个 uniform buffer (投影矩阵)
+  ShaderResourceInfo vsResources{};
+  vsResources.numUniformBuffers = 1;
+
+  m_vertexShader = ShaderLoader::load(device, shaderPath, "Sprite.vert", SDL_GPU_SHADERSTAGE_VERTEX, vsResources);
+
+  // 片段着色器: 1 个 sampler (纹理)
+  ShaderResourceInfo fsResources{};
+  fsResources.numSamplers = 1;
+
+  m_fragmentShader = ShaderLoader::load(device, shaderPath, "Sprite.frag", SDL_GPU_SHADERSTAGE_FRAGMENT, fsResources);
+}
+
+void SpriteRenderer::initPipeline(SDL_Window* /*window*/)
+{
+  auto* device = m_gfx->getDevice();
+  SDL_GPUTextureFormat swapchainFormat = m_gfx->getSwapchainFormat();
+
+  // --- 顶点输入布局 ---
+  SDL_GPUVertexBufferDescription bufDescs[2]{};
+
+  // 槽位 0: 顶点数据 (PER_VERTEX)
+  bufDescs[0].slot = 0;
+  bufDescs[0].pitch = sizeof(Vertex);
+  bufDescs[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+  bufDescs[0].instance_step_rate = 0;
+
+  // 槽位 1: 实例数据 (PER_INSTANCE)
+  bufDescs[1].slot = 1;
+  bufDescs[1].pitch = sizeof(InstanceData);
+  bufDescs[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+  bufDescs[1].instance_step_rate = 0;
+
+  SDL_GPUVertexAttribute attrs[7]{};
+
+  // 槽位 0 的属性 (每顶点)
+  attrs[0].location = 0;
+  attrs[0].buffer_slot = 0;
+  attrs[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+  attrs[0].offset = offsetof(Vertex, position);
+
+  attrs[1].location = 1;
+  attrs[1].buffer_slot = 0;
+  attrs[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+  attrs[1].offset = offsetof(Vertex, texCoord);
+
+  // 槽位 1 的属性 (每实例)
+  attrs[2].location = 2;
+  attrs[2].buffer_slot = 1;
+  attrs[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+  attrs[2].offset = offsetof(InstanceData, position);
+
+  attrs[3].location = 3;
+  attrs[3].buffer_slot = 1;
+  attrs[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+  attrs[3].offset = offsetof(InstanceData, scale);
+
+  attrs[4].location = 4;
+  attrs[4].buffer_slot = 1;
+  attrs[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+  attrs[4].offset = offsetof(InstanceData, rotation);
+
+  attrs[5].location = 5;
+  attrs[5].buffer_slot = 1;
+  attrs[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+  attrs[5].offset = offsetof(InstanceData, uvRect);
+
+  attrs[6].location = 6;
+  attrs[6].buffer_slot = 1;
+  attrs[6].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+  attrs[6].offset = offsetof(InstanceData, color);
+
+  SDL_GPUVertexInputState vertexInput{};
+  vertexInput.vertex_buffer_descriptions = bufDescs;
+  vertexInput.num_vertex_buffers = 2;
+  vertexInput.vertex_attributes = attrs;
+  vertexInput.num_vertex_attributes = 7;
+
+  // --- 光栅化状态 ---
+  SDL_GPURasterizerState rasterizer{};
+  rasterizer.fill_mode = SDL_GPU_FILLMODE_FILL;
+  rasterizer.cull_mode = SDL_GPU_CULLMODE_NONE;
+  rasterizer.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+  rasterizer.enable_depth_clip = false;
+
+  // --- 多重采样 ---
+  SDL_GPUMultisampleState multisample{};
+  multisample.sample_count = SDL_GPU_SAMPLECOUNT_1;
+  multisample.enable_alpha_to_coverage = false;
+
+  // --- 深度模板 (2D 不需要) ---
+  SDL_GPUDepthStencilState depthStencil{};
+  depthStencil.enable_depth_test = false;
+  depthStencil.enable_depth_write = false;
+  depthStencil.enable_stencil_test = false;
+
+  // --- 混合状态 (Alpha 混合) ---
+  SDL_GPUColorTargetBlendState blendState{};
+  blendState.enable_blend = true;
+  blendState.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+  blendState.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+  blendState.color_blend_op = SDL_GPU_BLENDOP_ADD;
+  blendState.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+  blendState.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
+  blendState.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+  blendState.enable_color_write_mask = false;
+
+  SDL_GPUColorTargetDescription colorTargetDesc{};
+  colorTargetDesc.format = swapchainFormat;
+  colorTargetDesc.blend_state = blendState;
+
+  SDL_GPUGraphicsPipelineTargetInfo targetInfo{};
+  targetInfo.color_target_descriptions = &colorTargetDesc;
+  targetInfo.num_color_targets = 1;
+  targetInfo.has_depth_stencil_target = false;
+
+  // --- 创建 PSO ---
+  SDL_GPUGraphicsPipelineCreateInfo pipelineInfo{};
+  pipelineInfo.vertex_shader = m_vertexShader.get();
+  pipelineInfo.fragment_shader = m_fragmentShader.get();
+  pipelineInfo.vertex_input_state = vertexInput;
+  pipelineInfo.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+  pipelineInfo.rasterizer_state = rasterizer;
+  pipelineInfo.multisample_state = multisample;
+  pipelineInfo.depth_stencil_state = depthStencil;
+  pipelineInfo.target_info = targetInfo;
+
+  m_pipeline = makePipeline(device, pipelineInfo);
+  if (!m_pipeline) {
+    LOG_ERROR(std::format("Failed to create graphics pipeline: {}", SDL_GetError()));
+    throw std::runtime_error("Failed to create graphics pipeline.");
   }
 
-  // 编译着色器 VS 与 PS
-  auto vsBytecode = ShaderCompiler::compile(shaderPath.string(), "VSMain", "vs_5_0");
-  m_vertexShader = std::make_unique<VertexShader>(m_device->getDevice(), vsBytecode.Get());
-  auto psBytecode = ShaderCompiler::compile(shaderPath.string(), "PSMain", "ps_5_0");
-  m_pixelShader = std::make_unique<PixelShader>(m_device->getDevice(), psBytecode.Get());
-
-  // 创建输入布局 (Input Layout) (必须与 hlsl 中的布局完全匹配)
-  std::vector<D3D11_INPUT_ELEMENT_DESC> layoutDesc = {
-    // 槽位 0: 顶点缓冲区数据 (PER_VERTEX_DATA)
-    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-
-    // 槽位 1: 实例缓冲区数据 (PER_INSTANCE_DATA)
-    // 最后的 `1`, 它代表 InstanceDataStepRate, 意思是“画完 1 个完整的实例（包含 4 个顶点）后, 才前进读取下一个实例数据”
-    { "INST_POS", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-    { "INST_SCALE", 0, DXGI_FORMAT_R32G32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-    { "INST_ROT", 0, DXGI_FORMAT_R32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-    { "INST_UV_RECT",
-      0,
-      DXGI_FORMAT_R32G32B32A32_FLOAT,
-      1,
-      D3D11_APPEND_ALIGNED_ELEMENT,
-      D3D11_INPUT_PER_INSTANCE_DATA,
-      1 },
-    { "INST_COLOR",
-      0,
-      DXGI_FORMAT_R32G32B32A32_FLOAT,
-      1,
-      D3D11_APPEND_ALIGNED_ELEMENT,
-      D3D11_INPUT_PER_INSTANCE_DATA,
-      1 }
-  };
-  m_inputLayout = std::make_unique<InputLayout>(m_device->getDevice(), layoutDesc, vsBytecode.Get());
+  LOG_INFO("Sprite PSO created successfully.");
 }
 
 void SpriteRenderer::initBuffers()
 {
-  // 创建顶点缓冲区
-  // 目前没有使用矩阵变换, 直接使用 GPU 的归一化设备坐标 (NDC)
-  // NDC 坐标系中, 屏幕中心是 (0,0), 左下角是 (-1,-1), 右上角是 (1,1)
+  auto* device = m_gfx->getDevice();
+
+  // 顶点缓冲区 (4 个顶点构成一个 quad)
   Vertex vertices[] = {
-    Vertex(-0.5f, -0.5f, 0.0f, 0.0f, 0.0f), // 左下角 (索引 0)
-    Vertex(-0.5f, 0.5f, 0.0f, 0.0f, 1.0f),  // 左上角 (索引 1)
-    Vertex(0.5f, 0.5f, 0.0f, 1.0f, 1.0f),   // 右上角 (索引 2)
-    Vertex(0.5f, -0.5f, 0.0f, 1.0f, 0.0f)   // 右下角 (索引 3)
+    Vertex{ -0.5f, -0.5f, 0.0f, 0.0f, 0.0f },
+    Vertex{ -0.5f,  0.5f, 0.0f, 0.0f, 1.0f },
+    Vertex{  0.5f,  0.5f, 0.0f, 1.0f, 1.0f },
+    Vertex{  0.5f, -0.5f, 0.0f, 1.0f, 0.0f },
   };
 
-  D3D11_BUFFER_DESC vbd{};
-  vbd.Usage = D3D11_USAGE_IMMUTABLE; // 声明这些顶点永远不会变, 显卡会把它放在最快的内存区
-  vbd.ByteWidth = sizeof(vertices);
-  vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // 告诉显卡这个是顶点缓冲区
-  vbd.CPUAccessFlags = 0;
+  SDL_GPUBufferCreateInfo vboInfo{};
+  vboInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+  vboInfo.size = sizeof(vertices);
+  m_vertexBuffer = makeBuffer(device, vboInfo);
 
-  D3D11_SUBRESOURCE_DATA vInitData{};
-  vInitData.pSysMem = vertices; // 指向 C++ 内存中的数据
+  // 顶点数据需要通过 transfer buffer 上传
+  SDL_GPUTransferBufferCreateInfo vboTransferInfo{};
+  vboTransferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+  vboTransferInfo.size = sizeof(vertices);
+  TransferBufPtr vboTransfer = makeTransferBuffer(device, vboTransferInfo);
 
-  HRESULT hr = m_device->getDevice()->CreateBuffer(&vbd, &vInitData, m_vertexBuffer.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Vertex Buffer.");
+  auto* vboMapped = static_cast<Vertex*>(SDL_MapGPUTransferBuffer(device, vboTransfer.get(), false));
+  std::memcpy(vboMapped, vertices, sizeof(vertices));
+  SDL_UnmapGPUTransferBuffer(device, vboTransfer.get());
 
-  // 创建索引缓冲区
-  // 定义如何连接上述 4 个顶点来组成 2 个三角形 (顺时针)
-  unsigned int indices[] = {
-    0, 1, 2, // 第一个三角形: 左下, 左上, 右上
-    0, 2, 3  // 第二个三角形: 左下, 右上, 右下
-  };
+  SDL_GPUCommandBuffer* uploadCmd = SDL_AcquireGPUCommandBuffer(device);
+  SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(uploadCmd);
 
-  D3D11_BUFFER_DESC ibd{};
-  ibd.Usage = D3D11_USAGE_IMMUTABLE;
-  ibd.ByteWidth = sizeof(indices);
-  ibd.BindFlags = D3D11_BIND_INDEX_BUFFER; // 告诉显卡这是个索引缓冲区
-  ibd.CPUAccessFlags = 0;
+  SDL_GPUTransferBufferLocation srcLoc{};
+  srcLoc.transfer_buffer = vboTransfer.get();
+  srcLoc.offset = 0;
 
-  D3D11_SUBRESOURCE_DATA iInitData{};
-  iInitData.pSysMem = indices;
+  SDL_GPUBufferRegion dstRegion{};
+  dstRegion.buffer = m_vertexBuffer.get();
+  dstRegion.offset = 0;
+  dstRegion.size = sizeof(vertices);
 
-  hr = m_device->getDevice()->CreateBuffer(&ibd, &iInitData, m_indexBuffer.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Index Buffer.");
+  SDL_UploadToGPUBuffer(copyPass, &srcLoc, &dstRegion, false);
+  SDL_EndGPUCopyPass(copyPass);
+  SDL_SubmitGPUCommandBuffer(uploadCmd);
 
-  // 创建常量缓冲区
-  D3D11_BUFFER_DESC cbd{};
-  cbd.Usage = D3D11_USAGE_DYNAMIC;
-  cbd.ByteWidth = sizeof(TransformCBuffer);
-  cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+  // 索引缓冲区 (2 个三角形)
+  Uint32 indices[] = { 0, 1, 2, 0, 2, 3 };
 
-  hr = m_device->getDevice()->CreateBuffer(&cbd, nullptr, m_constantBuffer.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create constant buffer.");
+  SDL_GPUBufferCreateInfo iboInfo{};
+  iboInfo.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+  iboInfo.size = sizeof(indices);
+  m_indexBuffer = makeBuffer(device, iboInfo);
 
-  // 创建实例缓冲区 (Instance Buffer)
-  D3D11_BUFFER_DESC instDesc{};
-  instDesc.Usage = D3D11_USAGE_DYNAMIC; // 动态, CPU 每一帧都要把几千颗子弹塞进去
-  instDesc.ByteWidth = sizeof(InstanceData) * m_maxInstances;
-  instDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;    // 实例缓冲区本质上也是一种顶点缓冲区
-  instDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // 允许 CPU 写入
+  SDL_GPUTransferBufferCreateInfo iboTransferInfo{};
+  iboTransferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+  iboTransferInfo.size = sizeof(indices);
+  TransferBufPtr iboTransfer = makeTransferBuffer(device, iboTransferInfo);
 
-  hr = m_device->getDevice()->CreateBuffer(&instDesc, nullptr, m_instanceBuffer.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Instance Buffer.");
+  auto* iboMapped = static_cast<Uint32*>(SDL_MapGPUTransferBuffer(device, iboTransfer.get(), false));
+  std::memcpy(iboMapped, indices, sizeof(indices));
+  SDL_UnmapGPUTransferBuffer(device, iboTransfer.get());
+
+  SDL_GPUCommandBuffer* uploadCmd2 = SDL_AcquireGPUCommandBuffer(device);
+  SDL_GPUCopyPass* copyPass2 = SDL_BeginGPUCopyPass(uploadCmd2);
+
+  SDL_GPUTransferBufferLocation srcLoc2{};
+  srcLoc2.transfer_buffer = iboTransfer.get();
+  srcLoc2.offset = 0;
+
+  SDL_GPUBufferRegion dstRegion2{};
+  dstRegion2.buffer = m_indexBuffer.get();
+  dstRegion2.offset = 0;
+  dstRegion2.size = sizeof(indices);
+
+  SDL_UploadToGPUBuffer(copyPass2, &srcLoc2, &dstRegion2, false);
+  SDL_EndGPUCopyPass(copyPass2);
+  SDL_SubmitGPUCommandBuffer(uploadCmd2);
+
+  // 实例缓冲区 (动态, 每帧更新)
+  SDL_GPUBufferCreateInfo instBufInfo{};
+  instBufInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+  instBufInfo.size = static_cast<Uint32>(sizeof(InstanceData) * m_maxInstances);
+  m_instanceBuffer = makeBuffer(device, instBufInfo);
+
+  // 实例 Transfer Buffer (用于每帧上传)
+  SDL_GPUTransferBufferCreateInfo instTransferInfo{};
+  instTransferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+  instTransferInfo.size = static_cast<Uint32>(sizeof(InstanceData) * m_maxInstances);
+  m_instanceTransferBuffer = makeTransferBuffer(device, instTransferInfo);
 }
 
-void SpriteRenderer::initStates()
+void SpriteRenderer::initSampler()
 {
-  // 创建光栅化器状态
-  D3D11_RASTERIZER_DESC rd{};
-  rd.FillMode = D3D11_FILL_SOLID;   // 实心填充
-  rd.CullMode = D3D11_CULL_NONE;    // 关闭背面剔除
-  rd.FrontCounterClockwise = FALSE; // 默认正面是顺时针
-  rd.DepthClipEnable = TRUE;
-
-  HRESULT hr = m_device->getDevice()->CreateRasterizerState(&rd, m_rasterizerState.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Rasterizer State.");
-
-  // 创建采样器状态
-  D3D11_SAMPLER_DESC sampDesc{};
-  sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // 缩放使用线性平滑插值
-
-  sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-  sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-  sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-
-  sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-  sampDesc.MinLOD = 0;
-  sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-  hr = m_device->getDevice()->CreateSamplerState(&sampDesc, m_samplerState.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Sampler State.");
-
-  // 创建 Alpha 混合状态
-  D3D11_BLEND_DESC blendDesc{};
-  blendDesc.RenderTarget[0].BlendEnable = TRUE; // 开启混合
-
-  // 混合公式: 最终颜色 = (贴图颜色 * 贴图Alpha) + (背景颜色 * (1 - 贴图Alpha))
-  blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-  blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-  blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-
-  // Alpha 通道的混合逻辑 (通常直接覆盖或相加)
-  blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-  blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-  blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-
-  // 允许写入所有颜色通道
-  blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-  hr = m_device->getDevice()->CreateBlendState(&blendDesc, m_blendState.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Blend State.");
+  // 采样器在 TextureManager 中已经创建并共享
+  // SpriteRenderer 不直接管理采样器, 纹理绑定时使用 Texture 自带的 sampler
 }
 
 void SpriteRenderer::flush()
 {
-  if (m_instances.empty() || !m_currentTexture) {
+  if (m_instances.empty() || !m_currentTexture || !m_cmd) {
     return;
   }
 
-  auto context = m_device->getContext();
+  auto* device = m_gfx->getDevice();
 
-  // 把 vector 里的数据通过内存拷贝到 Instance Buffer (显存)
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  HRESULT hr = context->Map(m_instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-  LOG_DX11_CHECK(hr, "Failed to map Instance Buffer!");
-  memcpy(mappedResource.pData, m_instances.data(), sizeof(InstanceData) * m_instances.size());
+  // SDL3 GPU 不允许在 render pass 进行中开始 copy pass
+  // 必须先结束当前 render pass, 完成 copy, 再重新开始 render pass
+  if (m_renderPass) {
+    SDL_EndGPURenderPass(m_renderPass);
+    m_renderPass = nullptr;
+  }
 
-  context->Unmap(m_instanceBuffer.Get(), 0);
+  // 上传实例数据到 transfer buffer
+  auto* mapped = static_cast<Uint8*>(
+    SDL_MapGPUTransferBuffer(device, m_instanceTransferBuffer.get(), true));
+  if (!mapped) {
+    LOG_ERROR("Failed to map instance transfer buffer.");
+    m_instances.clear();
+    return;
+  }
+  std::memcpy(mapped, m_instances.data(), sizeof(InstanceData) * m_instances.size());
+  SDL_UnmapGPUTransferBuffer(device, m_instanceTransferBuffer.get());
 
-  // 同时绑定两个顶点缓冲区
-  ID3D11Buffer* vbs[] = { m_vertexBuffer.Get(), m_instanceBuffer.Get() };
-  UINT strides[] = { sizeof(Vertex), sizeof(InstanceData) };
-  UINT offsets[] = { 0, 0 };
-  // 槽位0是几何顶点, 槽位1是实例数据. (在 InputLayout 中与 GPU 约定)
-  context->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+  // Copy Pass: 从 transfer buffer 上传到 instance buffer
+  SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(m_cmd);
 
-  context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+  SDL_GPUTransferBufferLocation transferSrc{};
+  transferSrc.transfer_buffer = m_instanceTransferBuffer.get();
+  transferSrc.offset = 0;
 
-  // 绑定当前批次的贴图
-  ID3D11ShaderResourceView* srvs[] = { m_currentTexture->getSRV() };
-  context->PSSetShaderResources(0, 1, srvs);
+  SDL_GPUBufferRegion bufferDst{};
+  bufferDst.buffer = m_instanceBuffer.get();
+  bufferDst.offset = 0;
+  bufferDst.size = static_cast<Uint32>(sizeof(InstanceData) * m_instances.size());
 
-  // 参数: 每个实例的索引数(6), 实例总数, 起始索引(0), 顶点起始偏移(0), 实例起始偏移(0)
-  context->DrawIndexedInstanced(6, static_cast<UINT>(m_instances.size()), 0, 0, 0);
+  SDL_UploadToGPUBuffer(copyPass, &transferSrc, &bufferDst, true);
+  SDL_EndGPUCopyPass(copyPass);
 
-  // 货物送达, 清空车厢, 准备装下一批货物
+  // 重新开始 render pass (LOAD 保留已有内容, 不清除)
+  if (m_swapchainTexture) {
+    SDL_GPUColorTargetInfo colorTarget{};
+    colorTarget.texture = m_swapchainTexture;
+    colorTarget.load_op = SDL_GPU_LOADOP_LOAD;
+    colorTarget.store_op = SDL_GPU_STOREOP_STORE;
+    m_renderPass = SDL_BeginGPURenderPass(m_cmd, &colorTarget, 1, nullptr);
+  }
+
+  if (!m_renderPass) {
+    m_instances.clear();
+    return;
+  }
+
+  // 重新绑定管线、视口和 uniform
+  SDL_BindGPUGraphicsPipeline(m_renderPass, m_pipeline.get());
+
+  SDL_GPUViewport viewport{};
+  viewport.x = m_viewX;
+  viewport.y = m_viewY;
+  viewport.w = m_viewW;
+  viewport.h = m_viewH;
+  viewport.min_depth = 0.0f;
+  viewport.max_depth = 1.0f;
+  SDL_SetGPUViewport(m_renderPass, &viewport);
+
+  SDL_PushGPUVertexUniformData(m_cmd, 0, m_projectionMatrix, sizeof(m_projectionMatrix));
+
+  // 绑定顶点缓冲区 (槽位 0: 几何顶点, 槽位 1: 实例数据)
+  SDL_GPUBufferBinding vboBindings[2]{};
+  vboBindings[0].buffer = m_vertexBuffer.get();
+  vboBindings[0].offset = 0;
+  vboBindings[1].buffer = m_instanceBuffer.get();
+  vboBindings[1].offset = 0;
+  SDL_BindGPUVertexBuffers(m_renderPass, 0, vboBindings, 2);
+
+  // 绑定索引缓冲区
+  SDL_GPUBufferBinding iboBinding{};
+  iboBinding.buffer = m_indexBuffer.get();
+  iboBinding.offset = 0;
+  SDL_BindGPUIndexBuffer(m_renderPass, &iboBinding, SDL_GPU_INDEXELEMENTSIZE_32BIT);
+
+  // 绑定纹理 + 采样器到 fragment 阶段
+  SDL_GPUTextureSamplerBinding texBinding = m_currentTexture->getBinding();
+  SDL_BindGPUFragmentSamplers(m_renderPass, 0, &texBinding, 1);
+
+  // 绘制: 每实例 6 个索引 (2 个三角形), N 个实例
+  SDL_DrawGPUIndexedPrimitives(m_renderPass, 6, static_cast<Uint32>(m_instances.size()), 0, 0, 0);
+
   m_instances.clear();
 }
 

@@ -1,8 +1,6 @@
 set(CORE_SOURCES
         Window.cpp
         Window.hpp
-        StringUtils.cpp
-        StringUtils.hpp
         Logger.hpp
         Timer.cpp
         Timer.hpp
@@ -26,7 +24,6 @@ target_include_directories(Core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(Core
         PUBLIC ProjectPCH
-        PUBLIC d3d11
-        PUBLIC winmm
+        PUBLIC SDL3::SDL3
         PRIVATE jsonpp
 )

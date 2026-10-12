@@ -54,7 +54,7 @@ bool ConfigManager::loadFromJson(std::string const& filePath)
       if (titleStr.size() > BUFFER_SIZE - 1) {
         LOG_WARN("Window title in config is too long and will be truncated to fit the buffer.");
       }
-      std::strncpy(m_settings.window.title, titleStr.c_str(), BUFFER_SIZE - 1);
+      strncpy(m_settings.window.title, titleStr.c_str(), BUFFER_SIZE - 1);
       m_settings.window.title[BUFFER_SIZE - 1] = 0;
 
       m_settings.window.width = windowCfg["width"].as_int();

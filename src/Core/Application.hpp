@@ -10,8 +10,7 @@ class Timer;
 }
 
 namespace Graphics {
-class Texture;
-class DX11Device;
+class GFXDevice;
 class TextureManager;
 class SpriteRenderer;
 }
@@ -38,18 +37,20 @@ public:
   static constexpr double SECONDS_PER_FRAME = 1.0 / TARGET_FPS; // 约为 0.0166667 秒
 
 private:
-  void update(); // 处理逻辑更新, 每帧调用
-  void render(); // 处理渲染提交, 尽可能快, 或被 vsync 限制
+  void processEvents(); // 处理 SDL 事件
+  void update();        // 处理逻辑更新, 每帧调用
+  void render();        // 处理渲染提交, 尽可能快, 或被 vsync 限制
 
 private:
   Config::EngineSettings m_config;
   bool m_isRunning;
 
+  // 声明顺序 = 初始化顺序 = 销毁顺序的逆序
   std::unique_ptr<Window> m_window;
-  std::unique_ptr<Timer> m_timer;
-  std::unique_ptr<Graphics::DX11Device> m_gfx;
+  std::unique_ptr<Graphics::GFXDevice> m_gfx;
   std::unique_ptr<Graphics::SpriteRenderer> m_spriteRenderer;
   std::unique_ptr<Graphics::TextureManager> m_textureManager;
+  std::unique_ptr<Timer> m_timer;
   std::unique_ptr<Game::World> m_world;
 
   // FPS 计算

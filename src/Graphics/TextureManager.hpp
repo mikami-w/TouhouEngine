@@ -1,13 +1,15 @@
 #pragma once
 
 #include "SpriteType.hpp"
+#include "GPUResourceManager.hpp"
 
 #include <memory>
 #include <string>
 #include <unordered_map>
 
+#include <SDL3/SDL_gpu.h>
+
 namespace Graphics {
-class DX11Device;
 class Texture;
 }
 
@@ -27,7 +29,7 @@ struct Sprite
 class TextureManager
 {
 public:
-  explicit TextureManager(DX11Device* device);
+  explicit TextureManager(SDL_GPUDevice* device);
   ~TextureManager() = default;
 
   TextureManager(TextureManager const&) = delete;
@@ -38,16 +40,19 @@ public:
   Texture* loadTexture(std::string const& name, std::string_view filePath, std::string_view atlasJsonPath = "");
   Texture* getTexture(std::string const& name) const;
 
+  SDL_GPUSampler* getSampler() const { return m_sampler.get(); }
+
   void clear();
 
 private:
   static void initMap();
 
 private:
-  DX11Device* m_device;
-  std::unordered_map<std::string, std::unique_ptr<Texture>> m_textures; // 纹理资源池
+  SDL_GPUDevice* m_device; // 非拥有
+  GPUSamplerPtr m_sampler; // 所有纹理共享
+  std::unordered_map<std::string, std::unique_ptr<Texture>> m_textures;
   std::unordered_map<std::string, Sprite> m_sprites;
 
-  static std::unordered_map<std::string, SpriteType> s_spriteMap; // 名称字符串到枚举的映射
+  static std::unordered_map<std::string, SpriteType> s_spriteMap;
 };
 } // namespace Graphics

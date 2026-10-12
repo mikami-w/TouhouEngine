@@ -18,20 +18,39 @@
 #endif
 
 #include "Core/Logger.hpp"
-#include "DX11Device.hpp"
 #include "Texture.hpp"
 
 namespace Graphics {
 
-TextureManager::TextureManager(DX11Device* device)
+TextureManager::TextureManager(SDL_GPUDevice* device)
   : m_device(device)
 {
-  if (!m_device || !(m_device->getDevice())) {
-    LOG_ERROR("Null DX11Device passed to TextureManager.");
-    throw std::invalid_argument("DX11Device is null.");
+  if (!m_device) {
+    LOG_ERROR("Null GPU device passed to TextureManager.");
+    throw std::invalid_argument("GPU device is null.");
   }
+
+  // 创建所有纹理共享的采样器 (线性过滤, Clamp)
+  SDL_GPUSamplerCreateInfo samplerInfo{};
+  samplerInfo.min_filter = SDL_GPU_FILTER_LINEAR;
+  samplerInfo.mag_filter = SDL_GPU_FILTER_LINEAR;
+  samplerInfo.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
+  samplerInfo.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+  samplerInfo.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+  samplerInfo.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
+  samplerInfo.enable_anisotropy = false;
+  samplerInfo.enable_compare = false;
+  samplerInfo.min_lod = 0.0f;
+  samplerInfo.max_lod = 1000.0f;
+
+  m_sampler = makeSampler(m_device, samplerInfo);
+  if (!m_sampler) {
+    LOG_ERROR(std::format("Failed to create shared sampler: {}", SDL_GetError()));
+    throw std::runtime_error("Failed to create shared sampler.");
+  }
+
   m_textures["404"] =
-    std::make_unique<Texture>(m_device, (std::filesystem::current_path() / "assets/textures/404.png").string());
+    std::make_unique<Texture>(m_device, m_sampler.get(), (std::filesystem::current_path() / "assets/textures/404.png").string());
   LOG_INFO("Texture Manager initialized with default '404' texture.");
 }
 
@@ -54,7 +73,8 @@ Texture* TextureManager::loadTexture(std::string const& name, std::string_view f
     LOG_ERROR("Texture file not found: " + fullTexturePath.string() + ". Failed to load texture.");
     return m_textures.at("404").get();
   }
-  Texture* texp = (m_textures[name] = std::make_unique<Texture>(m_device, fullTexturePath.string())).get();
+  Texture* texp =
+    (m_textures[name] = std::make_unique<Texture>(m_device, m_sampler.get(), fullTexturePath.string())).get();
   LOG_INFO("Texture '" + name + "' loaded and stored in TextureManager.");
 
   if (!atlasJsonPath.empty()) {

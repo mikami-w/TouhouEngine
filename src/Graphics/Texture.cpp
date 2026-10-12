@@ -6,7 +6,8 @@
 
 namespace Graphics {
 
-Texture::Texture(DX11Device* device, std::string const& filePath)
+Texture::Texture(SDL_GPUDevice* device, SDL_GPUSampler* sampler, std::string const& filePath)
+  : m_sampler(sampler)
 {
   LOG_INFO("Loading texture: " + filePath);
 
@@ -19,32 +20,88 @@ Texture::Texture(DX11Device* device, std::string const& filePath)
     throw std::runtime_error("Failed to load image.");
   }
 
-  // 描述显存特征
-  D3D11_TEXTURE2D_DESC texDesc{};
-  texDesc.Width = m_width;
-  texDesc.Height = m_height;
-  texDesc.MipLevels = 1;
-  texDesc.ArraySize = 1;
-  texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  texDesc.SampleDesc.Count = 1;
-  texDesc.Usage = D3D11_USAGE_IMMUTABLE;          // 贴图加载后不会再修改
-  texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // 给着色器当资源读取
+  // 创建 GPU 纹理
+  SDL_GPUTextureCreateInfo texInfo{};
+  texInfo.type = SDL_GPU_TEXTURETYPE_2D;
+  texInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+  texInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+  texInfo.width = static_cast<Uint32>(m_width);
+  texInfo.height = static_cast<Uint32>(m_height);
+  texInfo.layer_count_or_depth = 1;
+  texInfo.num_levels = 1;
+  texInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
-  // 把 CPU 的像素数组打包
-  D3D11_SUBRESOURCE_DATA initData = {};
-  initData.pSysMem = pixels;
-  initData.SysMemPitch = m_width * 4; // 一行像素占多少字节 (宽度 * 4字节)
+  m_texture = makeTexture(device, texInfo);
+  if (!m_texture) {
+    stbi_image_free(pixels);
+    LOG_ERROR(std::format("Failed to create GPU texture: {}", SDL_GetError()));
+    throw std::runtime_error("Failed to create GPU texture.");
+  }
 
-  // 创建 2D 纹理对象
-  Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
-  HRESULT hr = device->getDevice()->CreateTexture2D(&texDesc, &initData, texture.GetAddressOf());
-  stbi_image_free(pixels); // 把 CPU 里的像素数组释放掉, 因为数据已经传到显存里了. 一定先释放再 check, 否则可能内存泄漏!
-  LOG_DX11_CHECK(hr, "Failed to create Texture2D from image data.");
+  // 创建 Transfer Buffer 用于上传
+  Uint32 dataSize = static_cast<Uint32>(m_width * m_height * 4);
+  SDL_GPUTransferBufferCreateInfo transferInfo{};
+  transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+  transferInfo.size = dataSize;
 
-  // 为这块纹理创建 SRV, 让着色器能认出它
-  hr = device->getDevice()->CreateShaderResourceView(texture.Get(), nullptr, m_srv.GetAddressOf());
-  LOG_DX11_CHECK(hr, "Failed to create Shader Resource View for Texture.");
+  TransferBufPtr transferBuf = makeTransferBuffer(device, transferInfo);
+  if (!transferBuf) {
+    stbi_image_free(pixels);
+    LOG_ERROR(std::format("Failed to create transfer buffer: {}", SDL_GetError()));
+    throw std::runtime_error("Failed to create transfer buffer.");
+  }
+
+  // Map → memcpy → Unmap
+  auto* mapped = static_cast<Uint8*>(SDL_MapGPUTransferBuffer(device, transferBuf.get(), false));
+  if (!mapped) {
+    stbi_image_free(pixels);
+    LOG_ERROR(std::format("Failed to map transfer buffer: {}", SDL_GetError()));
+    throw std::runtime_error("Failed to map transfer buffer.");
+  }
+  memcpy(mapped, pixels, dataSize);
+  SDL_UnmapGPUTransferBuffer(device, transferBuf.get());
+  stbi_image_free(pixels);
+
+  // Copy Pass: 上传到 GPU 纹理
+  SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(device);
+  if (!cmd) {
+    LOG_ERROR(std::format("Failed to acquire command buffer: {}", SDL_GetError()));
+    throw std::runtime_error("Failed to acquire command buffer.");
+  }
+
+  SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmd);
+
+  SDL_GPUTextureTransferInfo transferSrc{};
+  transferSrc.transfer_buffer = transferBuf.get();
+  transferSrc.offset = 0;
+  transferSrc.pixels_per_row = static_cast<Uint32>(m_width);
+  transferSrc.rows_per_layer = static_cast<Uint32>(m_height);
+
+  SDL_GPUTextureRegion transferDst{};
+  transferDst.texture = m_texture.get();
+  transferDst.mip_level = 0;
+  transferDst.layer = 0;
+  transferDst.x = 0;
+  transferDst.y = 0;
+  transferDst.z = 0;
+  transferDst.w = static_cast<Uint32>(m_width);
+  transferDst.h = static_cast<Uint32>(m_height);
+  transferDst.d = 1;
+
+  SDL_UploadToGPUTexture(copyPass, &transferSrc, &transferDst, false);
+
+  SDL_EndGPUCopyPass(copyPass);
+  SDL_SubmitGPUCommandBuffer(cmd);
 
   LOG_INFO("Texture loaded successfully: " + filePath);
 }
+
+SDL_GPUTextureSamplerBinding Texture::getBinding() const
+{
+  SDL_GPUTextureSamplerBinding binding{};
+  binding.texture = m_texture.get();
+  binding.sampler = m_sampler;
+  return binding;
+}
+
 } // namespace Graphics

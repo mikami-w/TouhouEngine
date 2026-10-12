@@ -1,12 +1,9 @@
 #include "Application.hpp"
 
-#include <memory>
-
-#include <mmsystem.h>
-#include <windows.h>
+#include <SDL3/SDL.h>
 
 #include "Game/World.hpp"
-#include "Graphics/DX11Device.hpp"
+#include "Graphics/GFXDevice.hpp"
 #include "Graphics/SpriteRenderer.hpp"
 #include "Graphics/Texture.hpp"
 #include "Graphics/TextureManager.hpp"
@@ -23,7 +20,13 @@ Application::Application(Config::EngineSettings const& config)
 {
   LOG_INFO("Initializing application...");
 
-  // 初始化窗口
+  // 初始化SDL (如果尚未初始化)
+  if (!SDL_Init(SDL_INIT_VIDEO)) {
+    LOG_ERROR(std::format("SDL_Init failed: {}", SDL_GetError()));
+    throw std::runtime_error("SDL_Init failed.");
+  }
+
+  // 1. 初始化窗口
   Window::Config wndConfig{ .title = m_config.window.title,
                             .width = m_config.window.width,
                             .height = m_config.window.height };
@@ -31,48 +34,43 @@ Application::Application(Config::EngineSettings const& config)
   LOG_INFO("Display Resolution: " + std::to_string(m_config.window.width) + "x" +
            std::to_string(m_config.window.height));
 
-  // 初始化图形设备 DirectX 11 (传入窗口句柄)
-  m_gfx = std::make_unique<Graphics::DX11Device>(
-    m_window->getHandle(), m_config.window.width, m_config.window.height, m_config.window.vsync);
+  // 2. 初始化GPU 设备
+  m_gfx = std::make_unique<Graphics::GFXDevice>(m_window->getHandle(), m_config.window.vsync);
 
-  // 初始化计时器
-  m_timer = std::make_unique<Timer>();
-
-  // 初始化渲染管线
+  // 3. 初始化渲染管线 (需要swapchain format, 所以在 GFXDevice 之后)
   m_spriteRenderer = std::make_unique<Graphics::SpriteRenderer>(m_gfx.get());
-  m_spriteRenderer->initialize();
+  m_spriteRenderer->initialize(m_window->getHandle());
 
-  // 加载纹理资源
-  m_textureManager = std::make_unique<Graphics::TextureManager>(m_gfx.get());
+  // 4. 加载纹理资源 (需要GPU 设备)
+  m_textureManager = std::make_unique<Graphics::TextureManager>(m_gfx->getDevice());
   m_textureManager->initTextures();
 
-  // 初始化游戏世界, 并传入纹理管理器 (依赖注入)
-  m_world = std::make_unique<Game::World>(m_textureManager.get());
+  // 5. 初始化计时器
+  m_timer = std::make_unique<Timer>();
 
-  timeBeginPeriod(1); // 请求 1ms 的系统计时精度, 用于解决 Sleep(1) 的精度问题导致的微卡顿
+  // 6. 初始化游戏世界 并传入纹理管理器 (依赖注入)
+  m_world = std::make_unique<Game::World>(m_textureManager.get());
 
   LOG_INFO("Application initialized successfully.");
 }
 
 Application::~Application()
 {
-  timeEndPeriod(1); // 恢复默认计时精度
   LOG_INFO("Application shutting down.");
 }
 
 void Application::run()
 {
   m_timer->tick();
-  double nextFrameTime = m_timer->getTotalTime() + SECONDS_PER_FRAME; // 计划下一帧的时间点
+  double nextFrameTime = m_timer->getTotalTime() + SECONDS_PER_FRAME;
 
   // 主循环
   while (m_isRunning) {
-    // 处理窗口消息, 如果窗口被关闭则停止循环
-    if (!m_window->processMessages()) {
-      m_isRunning = false;
+    // 处理 SDL 事件
+    processEvents();
+    if (!m_isRunning) {
       break;
     }
-    // TODO: 添加其他退出逻辑
 
     update();
     render();
@@ -81,38 +79,57 @@ void Application::run()
     // Hybrid Spin-Wait (混合自旋等待)
     for (;;) {
       m_timer->tick();
-      double currentTime = m_timer->getTotalTime();       // 当前时间
-      double timeRemaining = nextFrameTime - currentTime; // 距离下一帧的剩余时间
+      double currentTime = m_timer->getTotalTime();
+      double timeRemaining = nextFrameTime - currentTime;
 
-      // 时间到了, 准备进入下一帧
       if (timeRemaining <= 0.0) {
         if (-timeRemaining <= SECONDS_PER_FRAME) {
-          // 正常情况: 当前时间只超过下一帧的计划时间不到 1 帧, 就直接进入下一帧
           nextFrameTime += SECONDS_PER_FRAME;
         } else {
-          // 处理落: 当前时间已经超过下一帧的计划时间大于 1 帧, 重置时间锚点, 放弃追赶
           nextFrameTime = currentTime + SECONDS_PER_FRAME;
         }
-
-        break; // 打破自旋, 进入主循环下一个 iteration
+        break;
       }
 
       if (!m_config.window.vsync) {
         if (timeRemaining > 0.002) {
-          // 如果离下一帧还有 2ms 以上，让出 CPU; 否则就不 Sleep, 直接死循环等待以提高精度
-          Sleep(1);
+          // 离下一帧还有2ms 以上, 让出 CPU
+          SDL_DelayNS(1'000'000);
         }
       } else {
-        // 如果开了 Vsync, Present 内部会阻塞, 不需要我们自己控制时间
+        // Vsync 的 Present 内部会阻塞
         break;
       }
     }
 
+    // FPS 计算
     if (m_timer->getTotalTime() - m_fpsTimeAccumulator >= 1.0) {
       m_fps = static_cast<float>(m_fpsFrameCount / (m_timer->getTotalTime() - m_fpsTimeAccumulator));
       m_fpsFrameCount = 0;
       m_fpsTimeAccumulator = m_timer->getTotalTime();
       // LOG_DEBUG(std::format("Current FPS: {:.2f}", m_fps));
+    }
+  }
+}
+
+void Application::processEvents()
+{
+  SDL_Event event{};
+  while (SDL_PollEvent(&event)) {
+    switch (event.type) {
+      case SDL_EVENT_QUIT:
+        m_isRunning = false;
+        break;
+      case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+        m_isRunning = false;
+        break;
+      case SDL_EVENT_KEY_DOWN:
+        if (event.key.key == SDLK_ESCAPE) {
+          m_isRunning = false;
+        }
+        break;
+      default:
+        break;
     }
   }
 }
@@ -124,11 +141,13 @@ void Application::update()
 
 void Application::render()
 {
-  // 为减少 drawcall 次数, 使用同一 texture 文件的绘制应相邻, 以便 SpriteRenderer 的批处理逻辑能把它们合并成一个
-  // drawcall
+  auto* window = m_window->getHandle();
 
-  m_gfx->clear(0.0f, 0.0f, 0.0f, 0.0f); // 清屏(背景)
-  m_spriteRenderer->begin();            // 开启渲染管线状态
+  // 帧开始: 获取 command buffer + swapchain + 清屏
+  m_spriteRenderer->beginFrame(window);
+
+  // 开始渲染管线 (推送projection uniform)
+  m_spriteRenderer->begin();
 
   // 切换视口到游戏区域
   m_spriteRenderer->setView(m_config.playArea.offsetX,
@@ -137,16 +156,6 @@ void Application::render()
                             m_config.playArea.logicalHeight);
 
   m_world->draw(m_spriteRenderer.get());
-
-  // 下面这段原本是用来让八云紫在屏幕中心小幅摆动, 充当发弹者, 后面由EnemyManager负责
-  // Graphics::Texture* yukari = m_textureManager->getTexture("yukari");
-  // static long long timecount = 0;
-  // float time = static_cast<float>(timecount++);
-  // float angle = Math::sin(time / 30.0f) * 0.2f;
-  // float width = yukari->getWidth() / 4.0f;
-  // float height = yukari->getHeight() / 4.0f;
-  // m_spriteRenderer->drawSprite(
-  //   yukari, { m_config.playArea.logicalWidth / 2, m_config.playArea.logicalHeight / 2 }, angle, { -width, height });
 
   // 切换视口到全屏, 绘制 fps
   m_spriteRenderer->setView(
@@ -157,7 +166,9 @@ void Application::render()
                              { m_config.window.width - 150.0f, m_config.window.height - 40.0f },
                              1.0f);
 
-  m_spriteRenderer->end(); // 结束渲染管线状态
-  m_gfx->present();        // 呈现到屏幕
+  // 结束渲染, 提交 command buffer
+  m_spriteRenderer->end();
+  m_spriteRenderer->endFrame();
 }
+
 } // namespace Core

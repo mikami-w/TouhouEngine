@@ -12,6 +12,8 @@
 #include <cmath>
 #include <numbers>
 
+#include "Platform.hpp"
+
 namespace Core::Math {
 constexpr float PI2_f = std::numbers::pi_v<float> * 2.0f;          // 360 degree
 constexpr float PI_f = std::numbers::pi_v<float>;                  // 180 degree

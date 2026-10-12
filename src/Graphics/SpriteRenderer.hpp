@@ -1,29 +1,28 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 
-#include <DirectXMath.h>
+#include <SDL3/SDL_gpu.h>
 
-#include "Shader.hpp"
+#include "GPUResourceManager.hpp"
 #include "Vertex.hpp"
 
 namespace Graphics {
-class DX11Device;
+class GFXDevice;
 class Texture;
 }
 
 namespace Graphics {
-// 常量缓冲区
-struct TransformCBuffer
+
+struct TransformUniform
 {
-  DirectX::XMFLOAT4X4 projection; // 投影矩阵
+  float projection[16]; // 4x4 投影矩阵, 行主序
 };
 
 class SpriteRenderer
 {
 public:
-  explicit SpriteRenderer(DX11Device* device); // 依赖注入: 需要 DX11Device 来创建资源
+  explicit SpriteRenderer(GFXDevice* gfx);
   ~SpriteRenderer() = default;
 
   SpriteRenderer(SpriteRenderer const&) = delete;
@@ -31,7 +30,7 @@ public:
 
   std::size_t getMaxInstances() const noexcept { return m_maxInstances; }
 
-  void initialize(); // 初始化管线状态 (加载 Shaders)
+  void initialize(SDL_Window* window); // 创建 PSO + Buffers + Sampler
 
   void setView(float screenX,
                float screenY,
@@ -40,53 +39,66 @@ public:
                float logicalW = -1.0f,
                float logicalH = -1.0f);
 
-  void begin(); // 开始渲染当前帧的 Sprites
-  void end();   // 结束渲染
-
-  // pos 屏幕像素坐标, angle 弧度, scale 图像宽高像素大小
+  // 帧生命周期
+  void beginFrame(SDL_Window* window); // 获取 command buffer + swapchain + 开始 render pass
+  void begin();                         // 推送 uniform
   void drawSprite(Texture* texture,
                   Core::Vector2 pos,
                   float angle,
                   Core::Vector2 scale,
-                  Core::Vector4 uvRect = { 0.0f, 0.0f, 1.0f, 1.0f }, // (u, v, width, height), 默认使用全图
-                  Core::Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f }   // RGBA 颜色, 默认白色滤镜 (原图颜色)
-  );
+                  Core::Vector4 uvRect = { 0.0f, 0.0f, 1.0f, 1.0f },
+                  Core::Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f });
   void drawText(Texture* texture,
                 std::string const& text,
                 Core::Vector2 start,
                 float scale = 1.0f,
                 Core::Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f });
+  void end();                            // flush 剩余实例
+  void endFrame();                       // 结束 render pass, 提交 command buffer
 
 private:
-  void initShaders();
+  void initShaders(SDL_Window* window);
+  void initPipeline(SDL_Window* window);
   void initBuffers();
-  void initStates();
+  void initSampler();
 
   void flush();
 
 private:
-  DX11Device* m_device; // 不管理生命周期
+  GFXDevice* m_gfx; // 非拥有
 
-  // 管线核心状态
-  std::unique_ptr<VertexShader> m_vertexShader;
-  std::unique_ptr<PixelShader> m_pixelShader;
-  std::unique_ptr<InputLayout> m_inputLayout;
+  // 着色器
+  ShaderPtr m_vertexShader;
+  ShaderPtr m_fragmentShader;
 
-  Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;   // 顶点缓冲区
-  Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;    // 索引缓冲区
-  Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer; // 常量缓冲区
-  Microsoft::WRL::ComPtr<ID3D11Buffer> m_instanceBuffer; // 实例缓冲区
+  // PSO (管线状态对象)
+  PipelinePtr m_pipeline;
 
-  Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rasterizerState; // 光栅化状态
-  Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;       // 采样器状态
-  Microsoft::WRL::ComPtr<ID3D11BlendState> m_blendState;           // 混合状态
+  // GPU 缓冲区
+  GPUBufferPtr m_vertexBuffer;
+  GPUBufferPtr m_indexBuffer;
+  GPUBufferPtr m_instanceBuffer;
+  TransferBufPtr m_instanceTransferBuffer;
 
-  // 缓存的投影矩阵 (只要窗口大小不变, 投影矩阵就不变)
-  DirectX::XMFLOAT4X4 m_projectionMatrix;
+  // 采样器
+  GPUSamplerPtr m_sampler;
+
+  // 帧状态
+  SDL_GPUCommandBuffer* m_cmd = nullptr;
+  SDL_GPURenderPass* m_renderPass = nullptr;
+  SDL_GPUTexture* m_swapchainTexture = nullptr;
+  Uint32 m_swapchainWidth = 0;
+  Uint32 m_swapchainHeight = 0;
+
+  // 投影矩阵
+  float m_projectionMatrix[16];
+
+  // 视口参数 (用于 setView 的 deferred 逻辑)
+  float m_viewX = 0, m_viewY = 0, m_viewW = 0, m_viewH = 0;
 
   // 批处理数据
-  std::vector<InstanceData> m_instances; // 存储当前帧所有待渲染的 Sprite 实例数据
-  Texture* m_currentTexture = nullptr;   // 当前批次使用的贴图
-  std::size_t m_maxInstances = 50000;    // 最大 Sprite 实例数量
+  std::vector<InstanceData> m_instances;
+  Texture* m_currentTexture = nullptr;
+  std::size_t m_maxInstances = 50000;
 };
 } // namespace Graphics

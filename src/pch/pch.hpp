@@ -26,11 +26,6 @@
 #include <utility>
 #include <vector>
 
-// DirectX 11
-#include <DirectXMath.h>
-#include <d3d11.h>
-#include <d3dcompiler.h>
-
-// Windows API
-#include <windows.h>
-#include <wrl/client.h>
+// SDL3
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_gpu.h>

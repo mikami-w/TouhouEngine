@@ -22,6 +22,5 @@ target_include_directories(Game PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(Game
         PUBLIC ProjectPCH
-        PUBLIC d3d11
         PRIVATE Core Graphics
 )

@@ -23,10 +23,9 @@ public:
     DEBUG_,
     INFO_,
     WARN_,
-    // ERROR_FUCKWINDOWS,  // windows.h 里定义了 ERROR 宏 =)
     ERROR_,
     FATAL_,
-    DX11_ERROR_
+    GFX_ERROR_
   };
 
 public:
@@ -57,11 +56,11 @@ public:
     m_cv.notify_one();
   }
 
-  void checkDX11(long hr, std::string_view message)
+  void checkGfx(bool condition, std::string_view message)
   {
-    if (hr < 0) { // FAILED(hr)
-      log<LogLevel::DX11_ERROR_>(std::format("{} (HRESULT: 0x{:X})", message, hr));
-      throw std::runtime_error(std::format("{} (HRESULT: 0x{:08X})", message, static_cast<std::uint32_t>(hr)));
+    if (!condition) {
+      log<LogLevel::GFX_ERROR_>(std::format("{} (SDL Error: {})", message, SDL_GetError()));
+      throw std::runtime_error(std::format("{} (SDL Error: {})", message, SDL_GetError()));
     }
   }
 
@@ -150,7 +149,7 @@ private:
 #define LOG_WARN(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::WARN_>(msg)
 #define LOG_ERROR(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::ERROR_>(msg)
 #define LOG_FATAL(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::FATAL_>(msg)
-#define LOG_DX11_CHECK(hr, msg) ::Core::Logger::getInstance().checkDX11(hr, msg)
+#define LOG_GFX_CHECK(condition, msg) ::Core::Logger::getInstance().checkGfx(condition, msg)
 
 #if defined(_DEBUG)
 #define LOG_DEBUG(msg) ::Core::Logger::getInstance().log<Core::Logger::LogLevel::DEBUG_>(msg)

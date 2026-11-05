@@ -1,21 +1,6 @@
 #include "TextureManager.hpp"
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable : 4244 4702)
-#elif defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wunreachable-code"
-#endif
-
 #include <jsonpp/jsonpp.hpp>
-
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#elif defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #include "Core/Logger.hpp"
 #include "Texture.hpp"

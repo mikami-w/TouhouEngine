@@ -175,12 +175,7 @@ void SpriteRenderer::drawText(Texture* texture,
       int row = index / cols;
       int col = index % cols;
 
-      Core::Vector4 uvRect = {
-        col * uvStep,
-        row * uvStep,
-        uvStep,
-        uvStep
-      };
+      Core::Vector4 uvRect = { col * uvStep, row * uvStep, uvStep, uvStep };
 
       drawSprite(texture, { cursorX, start.y }, 0.0f, { quadSize, quadSize }, uvRect, color);
     }
@@ -337,9 +332,9 @@ void SpriteRenderer::initBuffers()
   // 顶点缓冲区 (4 个顶点构成一个 quad)
   Vertex vertices[] = {
     Vertex{ -0.5f, -0.5f, 0.0f, 0.0f, 0.0f },
-    Vertex{ -0.5f,  0.5f, 0.0f, 0.0f, 1.0f },
-    Vertex{  0.5f,  0.5f, 0.0f, 1.0f, 1.0f },
-    Vertex{  0.5f, -0.5f, 0.0f, 1.0f, 0.0f },
+    Vertex{ -0.5f, 0.5f, 0.0f, 0.0f, 1.0f },
+    Vertex{ 0.5f, 0.5f, 0.0f, 1.0f, 1.0f },
+    Vertex{ 0.5f, -0.5f, 0.0f, 1.0f, 0.0f },
   };
 
   SDL_GPUBufferCreateInfo vboInfo{};
@@ -441,8 +436,7 @@ void SpriteRenderer::flush()
   }
 
   // 上传实例数据到 transfer buffer
-  auto* mapped = static_cast<Uint8*>(
-    SDL_MapGPUTransferBuffer(device, m_instanceTransferBuffer.get(), true));
+  auto* mapped = static_cast<Uint8*>(SDL_MapGPUTransferBuffer(device, m_instanceTransferBuffer.get(), true));
   if (!mapped) {
     LOG_ERROR("Failed to map instance transfer buffer.");
     m_instances.clear();

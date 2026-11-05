@@ -11,10 +11,8 @@ GFXDevice::GFXDevice(SDL_Window* window, bool enableVsync)
   debugMode = true;
 #endif
 
-  m_device = makeGPUDevice(
-    SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB,
-    debugMode
-  );
+  m_device =
+    makeGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_METALLIB, debugMode);
 
   if (!m_device) {
     LOG_ERROR(std::format("SDL_CreateGPUDevice failed: {}", SDL_GetError()));
@@ -26,15 +24,13 @@ GFXDevice::GFXDevice(SDL_Window* window, bool enableVsync)
     throw std::runtime_error("Failed to claim window for GPU");
   }
 
-  SDL_GPUPresentMode presentMode =
-    enableVsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE;
+  SDL_GPUPresentMode presentMode = enableVsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE;
   if (!SDL_WindowSupportsGPUPresentMode(m_device.get(), window, presentMode)) {
     LOG_WARN("Immediate present mode is unsupported. Falling back to vertical sync.");
     presentMode = SDL_GPU_PRESENTMODE_VSYNC;
   }
 
-  if (!SDL_SetGPUSwapchainParameters(
-        m_device.get(), window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, presentMode)) {
+  if (!SDL_SetGPUSwapchainParameters(m_device.get(), window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, presentMode)) {
     LOG_ERROR(std::format("SDL_SetGPUSwapchainParameters failed: {}", SDL_GetError()));
     throw std::runtime_error("Failed to configure GPU swapchain");
   }

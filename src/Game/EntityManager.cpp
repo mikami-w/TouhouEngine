@@ -86,7 +86,8 @@ void EntityManager::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager*
   auto tama_large = tm->getTexture("tama_large");
 
   for (std::uint32_t i = 0; i < m_activeCount; ++i) {
-    sr->drawSprite(tama_large, entities[i].getPosition(), 0.0f, { tama_large->getWidth() / 4.0f, tama_large->getHeight() / 4.0f });
+    sr->drawSprite(
+      tama_large, entities[i].getPosition(), 0.0f, { tama_large->getWidth() / 4.0f, tama_large->getHeight() / 4.0f });
   }
 }
 

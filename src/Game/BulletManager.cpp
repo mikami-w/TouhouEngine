@@ -119,7 +119,7 @@ void BulletManager::draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager*
     float angle = 0;
 
     sr->drawSprite(tama_large,
-                   {m_bulPos.x[i], m_bulPos.y[i]},
+                   { m_bulPos.x[i], m_bulPos.y[i] },
                    angle,           // 子弹总是面向运动方向
                    { 20.0f, 20.0f } // 子弹大小
     );

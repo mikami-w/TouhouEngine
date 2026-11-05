@@ -13,11 +13,7 @@ Window::Window(Config const& config)
   }
 
   m_window = SDL_CreateWindow(
-    config.title.c_str(),
-    config.width,
-    config.height,
-    SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
-  );
+    config.title.c_str(), config.width, config.height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 
   if (!m_window) {
     LOG_ERROR(std::format("SDL_CreateWindow failed: {}", SDL_GetError()));

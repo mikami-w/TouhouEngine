@@ -16,8 +16,7 @@ Timer::Timer()
 void Timer::tick()
 {
   auto currTime = SDL_GetPerformanceCounter();
-  m_deltaTime = static_cast<double>(currTime - m_prevTime)
-              / static_cast<double>(m_frequency);
+  m_deltaTime = static_cast<double>(currTime - m_prevTime) / static_cast<double>(m_frequency);
   m_prevTime = currTime;
 
   if (m_deltaTime < 0.0) {
@@ -27,8 +26,7 @@ void Timer::tick()
     m_deltaTime = 0.25;
   }
 
-  m_totalTime = static_cast<double>(currTime - m_baseTime)
-              / static_cast<double>(m_frequency);
+  m_totalTime = static_cast<double>(currTime - m_baseTime) / static_cast<double>(m_frequency);
 }
 
 double Timer::peekTotalTime() const

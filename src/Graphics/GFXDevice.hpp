@@ -1,7 +1,7 @@
 #pragma once
 
-#include <SDL3/SDL_gpu.h>
 #include "GPUResourceManager.hpp"
+#include <SDL3/SDL_gpu.h>
 
 namespace Graphics {
 

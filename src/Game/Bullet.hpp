@@ -12,17 +12,16 @@ namespace Game {
 
 enum class RotationType : std::uint8_t
 {
-  None,             // 不旋转
-  FaceVelocity,     // 自动脸朝向速度方向
-  Fixed,            // 固定角度
-  ConstantSpin      // 以恒定角速度自转
+  None,         // 不旋转
+  FaceVelocity, // 自动脸朝向速度方向
+  Fixed,        // 固定角度
+  ConstantSpin  // 以恒定角速度自转
 };
 
 struct BulletMetadata
 {
   Graphics::Color::ColorType color = 0;                        // RGBA 颜色
   Graphics::SpriteType type = Graphics::SpriteType::ERROR_404; // 子弹 (贴图) 类型
-
 };
 
 // 运动模组, 两种运动可叠加

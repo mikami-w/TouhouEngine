@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SpriteType.hpp"
 #include "GPUResourceManager.hpp"
+#include "SpriteType.hpp"
 
 #include <memory>
 #include <string>

@@ -1,20 +1,20 @@
 #include "TextureManager.hpp"
 
 #if defined(_MSC_VER)
-  #pragma warning(push)
-  #pragma warning(disable: 4244 4702)
+#pragma warning(push)
+#pragma warning(disable : 4244 4702)
 #elif defined(__GNUC__) || defined(__clang__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wconversion"
-  #pragma GCC diagnostic ignored "-Wunreachable-code"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wunreachable-code"
 #endif
 
 #include <jsonpp/jsonpp.hpp>
 
 #if defined(_MSC_VER)
-  #pragma warning(pop)
+#pragma warning(pop)
 #elif defined(__GNUC__) || defined(__clang__)
-  #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 
 #include "Core/Logger.hpp"
@@ -49,8 +49,8 @@ TextureManager::TextureManager(SDL_GPUDevice* device)
     throw std::runtime_error("Failed to create shared sampler.");
   }
 
-  m_textures["404"] =
-    std::make_unique<Texture>(m_device, m_sampler.get(), (std::filesystem::current_path() / "assets/textures/404.png").string());
+  m_textures["404"] = std::make_unique<Texture>(
+    m_device, m_sampler.get(), (std::filesystem::current_path() / "assets/textures/404.png").string());
   LOG_INFO("Texture Manager initialized with default '404' texture.");
 }
 

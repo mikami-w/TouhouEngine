@@ -36,9 +36,8 @@ public:
   void setPosition(Handle handle, Core::Vector2 pos) noexcept;
   void setMetadata(Handle handle, BulletMetadata meta) noexcept;
 
-
   // 每帧调用
-  void update(float screenWidth, float screenHeight) noexcept; // 更新位置并回收出界子弹
+  void update(float screenWidth, float screenHeight) noexcept;                 // 更新位置并回收出界子弹
   void draw(Graphics::SpriteRenderer* sr, Graphics::TextureManager* tm) const; // 遍历并绘制
 
   // 清空全屏子弹

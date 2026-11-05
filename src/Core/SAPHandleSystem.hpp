@@ -12,7 +12,7 @@ public:
 
   struct Handle
   {
-    size_type index = std::numeric_limits<size_type>::max();
+    size_type index = INVALID_INDEX;
     size_type generation = 0;
   };
 

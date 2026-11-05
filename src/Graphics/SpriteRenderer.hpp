@@ -41,7 +41,7 @@ public:
 
   // 帧生命周期
   void beginFrame(SDL_Window* window); // 获取 command buffer + swapchain + 开始 render pass
-  void begin();                         // 推送 uniform
+  void begin();                        // 推送 uniform
   void drawSprite(Texture* texture,
                   Core::Vector2 pos,
                   float angle,
@@ -53,8 +53,8 @@ public:
                 Core::Vector2 start,
                 float scale = 1.0f,
                 Core::Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f });
-  void end();                            // flush 剩余实例
-  void endFrame();                       // 结束 render pass, 提交 command buffer
+  void end();      // flush 剩余实例
+  void endFrame(); // 结束 render pass, 提交 command buffer
 
 private:
   void initShaders(SDL_Window* window);

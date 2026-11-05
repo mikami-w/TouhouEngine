@@ -31,10 +31,10 @@ private:
   // 尝试加载特定格式的文件
   [[nodiscard]] static std::vector<Uint8> readFile(std::string const& path);
   [[nodiscard]] static ShaderPtr tryLoad(SDL_GPUDevice* device,
-                                          std::string const& path,
-                                          SDL_GPUShaderFormat format,
-                                          SDL_GPUShaderStage stage,
-                                          ShaderResourceInfo const& resources);
+                                         std::string const& path,
+                                         SDL_GPUShaderFormat format,
+                                         SDL_GPUShaderStage stage,
+                                         ShaderResourceInfo const& resources);
 };
 
 } // namespace Graphics

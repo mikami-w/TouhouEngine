@@ -118,16 +118,14 @@ void Application::processEvents()
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_EVENT_QUIT:
+      case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
         m_isRunning = false;
+        return;
+      }
+      case SDL_EVENT_KEY_DOWN: {
+        // do something
         break;
-      case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        m_isRunning = false;
-        break;
-      case SDL_EVENT_KEY_DOWN:
-        if (event.key.key == SDLK_ESCAPE) {
-          m_isRunning = false;
-        }
-        break;
+      }
       default:
         break;
     }

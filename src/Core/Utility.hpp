@@ -50,7 +50,8 @@ constexpr std::string_view GetEnumName() noexcept
   constexpr std::string_view prefix = "[V = ";
   constexpr std::string_view suffix = "]";
 #elif defined(__GNUC__)
-  // GCC: "constexpr std::string_view GetFunctionSig() [with auto V = TestEnum::Value; std::string_view = std::basic_string_view<char>]"
+  // GCC: "constexpr std::string_view GetFunctionSig() [with auto V = TestEnum::Value; std::string_view =
+  // std::basic_string_view<char>]"
   constexpr std::string_view prefix = "[with auto V = ";
   constexpr std::string_view suffix = "; std::string_view = std::basic_string_view<char>]";
 #else
